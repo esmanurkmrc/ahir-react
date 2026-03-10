@@ -1,0 +1,196 @@
+/* Genel Sayfa Yapısı */
+.dashboard-wrapper {
+  display: flex;
+  height: 100vh;
+  background-color: #f4f7f6;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+}
+
+/* --- SOL MENÜ (SIDEBAR) TASARIMI --- */
+.sidebar {
+  width: 280px;
+  background-color: #1a2a3a; /* Koyu Lacivert */
+  color: white;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 40px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-header h2 {
+  color: #56c596; /* Akıllı Ahir Yeşili */
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: 1.5px;
+  font-weight: 800;
+}
+
+.sidebar-nav {
+  flex-grow: 1;
+  padding-top: 20px;
+}
+
+.sidebar-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Menü Butonlarının Temizlenmesi ve Estetiği */
+.sidebar-nav ul li {
+  margin-bottom: 5px;
+}
+
+.sidebar-nav ul li button {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #aeb9b7;
+  padding: 16px 25px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-left: 4px solid transparent;
+}
+
+/* Hover (Üzerine Gelince) Efekti */
+.sidebar-nav ul li button:hover {
+  background-color: rgba(86, 197, 150, 0.1);
+  color: #56c596;
+  padding-left: 32px; /* Hafif sağa kayma */
+}
+
+/* Aktif Sekme Stili */
+.sidebar-nav ul li.active button {
+  background-color: #243444;
+  color: #56c596;
+  border-left: 4px solid #56c596;
+  font-weight: 600;
+}
+
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.logout-btn:hover {
+  background-color: #c0392b;
+  transform: translateY(-2px);
+}
+
+/* --- SAĞ İÇERİK ALANI --- */
+.main-content {
+  flex-grow: 1;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.content-header h1 {
+  font-size: 28px;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.user-info {
+  background: white;
+  padding: 10px 20px;
+  border-radius: 50px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  font-weight: 500;
+  color: #7f8c8d;
+}
+
+/* İstatistik Kartları */
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.02);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+}
+
+.stat-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.stat-card h3 {
+  color: #7f8c8d;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 10px 0;
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 800;
+  color: #1a2a3a;
+  margin: 5px 0;
+}
+
+.stat-label {
+  color: #56c596;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Grafik Alanı Boşluğu */
+.placeholder-section {
+  background: white;
+  border-radius: 16px;
+  padding: 60px;
+  text-align: center;
+  border: 2px dashed #dcdde1;
+  color: #95a5a6;
+}
+
+.chart-placeholder h2 {
+  margin-bottom: 10px;
+  color: #2c3e50;
+}

@@ -1,0 +1,107 @@
+/* Arka plan gradyanı */
+.giris-body {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); /* Modern Lacivert/Mavi geçiş */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Cam Efekti Kartı */
+.giris-glass-card {
+  background: rgba(255, 255, 255, 0.1); /* Şeffaf beyaz */
+  backdrop-filter: blur(15px); /* Arkayı bulanıklaştırma */
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 40px;
+  width: 380px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+/* Başlık Alanı */
+.logo-text {
+  color: #56c596; /* Ahir temasına uygun yeşil */
+  font-size: 24px;
+  letter-spacing: 2px;
+  margin: 0;
+}
+
+.sub-text {
+  color: #ddd;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.title {
+  color: white;
+  margin: 30px 0;
+  font-weight: 400;
+}
+
+/* Form Elemanları */
+.giris-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.giris-form input {
+  width: 100%;
+  padding: 12px 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  outline: none;
+  box-sizing: border-box; /* Padding taşmasını engeller */
+}
+
+.giris-form input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.giris-form input:focus {
+  border-color: #56c596;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Giriş Butonu */
+.giris-button {
+  background: #56c596;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-top: 10px;
+}
+
+.giris-button:hover {
+  background: #45a07a;
+  transform: translateY(-2px);
+}
+
+/* Alt Kısım */
+.giris-footer {
+  margin-top: 25px;
+  color: white;
+  font-size: 14px;
+}
+
+.giris-footer a {
+  color: #56c596;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.giris-footer a:hover {
+  text-decoration: underline;
+}

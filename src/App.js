@@ -1,24 +1,27 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Anasayfapage from "./page/anasayfapage";
+import Kayitpage from "./page/kayitpage";
+import Girispage from "./page/girispage";
+import Dashboardpage from "./page/Dashboardpage"; // Dashboard'u import ettik
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <Routes>
+        {/* Ana sayfa yolu */}
+        <Route path="/" element={<Anasayfapage />} />
+        
+        {/* Kayıt sayfası yolu */}
+        <Route path="/kayit" element={<Kayitpage />} />
+        
+        {/* Giriş sayfası yolu */}
+        <Route path="/login" element={<Girispage />} />
+
+        {/* Dashboard sayfası yolu - Yeni Eklendi */}
+        <Route path="/dashboard" element={<Dashboardpage />} />
+      </Routes>
+    </Router>
   );
 }
 
