@@ -1,0 +1,123 @@
+/* Ana Konteynır: Daha Açık ve Soft Lila Arka Plan */
+.hayvan-container {
+    padding: 25px 40px;
+    background: linear-gradient(135deg, #fdfaff 0%, #f3e5f5 100%); /* Çok daha açık lila */
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+}
+
+/* Sayfa Başlığı */
+.hayvan-container h1 {
+    color: #4a148c;
+    font-size: 24px;
+    margin-bottom: 25px;
+    font-weight: 800;
+}
+
+/* Layout Yapısı */
+.layout-wrapper {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+/* Kartlar */
+.hayvan-ekle, .hayvan-listesi {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 8px 25px rgba(106, 27, 154, 0.05); /* Daha hafif gölge */
+    border: 1px solid #f3e5f5;
+}
+
+/* Form Elemanları */
+.input-group input, .input-group select {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1.5px solid #f3e5f5;
+    border-radius: 12px;
+    background: #fafafa;
+    transition: 0.3s;
+}
+
+.input-group input:focus {
+    border-color: #ba68c8;
+    background: #fff;
+    outline: none;
+}
+
+/* Butonlar */
+.save-btn {
+    width: 100%;
+    padding: 14px;
+    background: #7b1fa2;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.listele-btn {
+    background: #6a1b9a;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* TABLO BUTONLARI (Emoji Yerine Yazı) */
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.edit-btn, .delete-btn {
+    padding: 6px 15px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: 0.3s;
+}
+
+.edit-btn {
+    background-color: #f3e5f5;
+    color: #7b1fa2; /* Mor yazı */
+}
+
+.edit-btn:hover {
+    background-color: #e1bee7;
+}
+
+.delete-btn {
+    background-color: #ffebee;
+    color: #c62828; /* Kırmızı yazı */
+}
+
+.delete-btn:hover {
+    background-color: #ffcdd2;
+}
+
+/* Tablo Stili */
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+}
+
+tbody tr {
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+td {
+    padding: 15px;
+    font-size: 14px;
+}
