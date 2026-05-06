@@ -1,211 +1,554 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { 
-  AlertTriangle, Thermometer, Wind, Activity, 
-  Bell, CheckCircle, ArrowRight, Filter, Clock 
+import {
+  Thermometer,
+  Wind,
+  Activity,
+  Bell,
+  ArrowRight,
+  Clock,
+  CheckCircle2,
+  ShieldAlert,
+  Sparkles,
+  Siren,
+  RefreshCcw,
+  Droplets,
+  History,
+  Radio,
+  Filter,
 } from "lucide-react";
+import "../CSS/anomaliAnaliz.css";
 
 const AnomaliAnalizpage = () => {
   const navigate = useNavigate();
+
+  const [mode, setMode] = useState("live");
   const [alerts, setAlerts] = useState([]);
+  const [allHistoryAlerts, setAllHistoryAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionLogs, setActionLogs] = useState([]); // Müdahale geçmişi simülasyonu
-  const [stats, setStats] = useState({ kritik: 0, cozulur: 12, saglik: 94 });
+  const [actionLogs, setActionLogs] = useState([]);
+  const [resolvedIds, setResolvedIds] = useState(new Set());
+  const [lastScanTime, setLastScanTime] = useState(null);
+  const [engineStatus, setEngineStatus] = useState("Hazırlanıyor");
+  const [selectedDate, setSelectedDate] = useState("");
+
+  const [sensorData, setSensorData] = useState({
+    sicaklik: 0,
+    nem: 0,
+    amonyak: 0,
+    zaman: null,
+  });
+
+  const [stats, setStats] = useState({
+    kritik: 0,
+    uyari: 0,
+    saglik: 100,
+  });
+
+  const API_BASE = "http://localhost:8080/api";
 
   useEffect(() => {
-    detectAnomalies();
-  }, []);
+    if (mode === "live") {
+      fetchLiveAlerts();
+      const interval = setInterval(fetchLiveAlerts, 5000);
+      return () => clearInterval(interval);
+    } else {
+      fetchHistoryAlerts();
+    }
+  }, [mode]);
 
-  const detectAnomalies = async () => {
+  useEffect(() => {
+    if (mode === "history" && selectedDate) {
+      const filtered = allHistoryAlerts.filter((a) => a.date === selectedDate);
+      updateAlertsAndStats(filtered);
+    }
+  }, [selectedDate, allHistoryAlerts]);
+
+  const updateAlertsAndStats = (alertList) => {
+    const kritikCount = alertList.filter((a) => a.level === "KRİTİK").length;
+    const uyariCount = alertList.filter((a) => a.level === "UYARI").length;
+
+    setAlerts(alertList);
+    setStats({
+      kritik: kritikCount,
+      uyari: uyariCount,
+      saglik: Math.max(100 - kritikCount * 25 - uyariCount * 10, 35),
+    });
+  };
+
+  const fetchLiveAlerts = async () => {
     try {
-      const [prodRes, envRes] = await Promise.all([
-        axios.get("http://localhost:8080/api/productivity"),
-        axios.get("http://localhost:8080/api/environment")
-      ]);
+      setEngineStatus("Taranıyor");
 
-      const foundAnomalies = [];
-      let kritikCount = 0;
+      const response = await axios.get(`${API_BASE}/sensor-data/son`);
+      const data = response.data;
 
-      envRes.data.forEach(env => {
-        const prod = prodRes.data.find(p => p.tarih === env.tarih);
+      const sicaklik = Number(data.sicaklik || 0);
+      const nem = Number(data.nem || 0);
+      const amonyak = Number(data.amonyak || 0);
 
-        // 1. Kural: Verim Düşüşü Tahmini
-        if (prod && prod.sutVerimi < 15) {
-          kritikCount++;
-          foundAnomalies.push({
-            id: `verim-${prod.id}`,
-            level: "KRİTİK",
-            title: "Ani Verim Düşüşü",
-            desc: `Süt verimi ${prod.sutVerimi}L'ye düştü. Mevcut trend devam ederse önümüzdeki 24 saatte %4 ek kayıp bekleniyor.`,
-            icon: <Activity color="#b91c1c" size={20} />,
-            date: env.tarih,
-            bg: "#fef2f2",
-            link: "/dashboard/sut"
-          });
-        }
-
-        // 2. Kural: Isı Stresi ve Öneri
-        if (env.sicaklik > 22) {
-          foundAnomalies.push({
-            id: `isi-${env.id}`,
-            level: "UYARI",
-            title: "Isı Stresi Riski",
-            desc: `Sıcaklık ${env.sicaklik}°C. Hayvanların su tüketimini artırması ve rasyonun gözden geçirilmesi önerilir.`,
-            icon: <Thermometer color="#ea580c" size={20} />,
-            date: env.tarih,
-            bg: "#fff7ed",
-            link: "/dashboard/analiz"
-          });
-        }
-
-        // 3. Kural: Amonyak ve Sağlık Riski
-        if (env.amonyak > 20) {
-          kritikCount++;
-          foundAnomalies.push({
-            id: `nh3-${env.id}`,
-            level: "KRİTİK",
-            title: "Hava Kalitesi Sınır Değerde",
-            desc: `Amonyak: ${env.amonyak} ppm. Yüksek amonyak solunum yolu hastalıkları riskini %15 artırır. Havalandırmayı açın.`,
-            icon: <Wind color="#7e22ce" size={20} />,
-            date: env.tarih,
-            bg: "#faf5ff",
-            link: "/dashboard/analiz"
-          });
-        }
+      setSensorData({
+        sicaklik,
+        nem,
+        amonyak,
+        zaman: data.zaman || null,
       });
 
-      setAlerts(foundAnomalies.reverse().slice(0, 8));
-      setStats(prev => ({ ...prev, kritik: kritikCount }));
-      setLoading(false);
+      const liveAlerts = [];
+
+      if (amonyak > 25) {
+        liveAlerts.push({
+          id: "live-nh3-critical",
+          level: "KRİTİK",
+          type: "AMONYAK",
+          title: "Amonyak Seviyesi Kritik",
+          desc: `Anlık amonyak değeri ${amonyak} ppm. Havalandırma sistemi acilen kontrol edilmeli.`,
+          iconType: "wind",
+          bgClass: "purple-bg",
+          link: "/dashboard/analiz",
+        });
+      } else if (amonyak > 20) {
+        liveAlerts.push({
+          id: "live-nh3-warning",
+          level: "UYARI",
+          type: "AMONYAK",
+          title: "Amonyak Seviyesi Yükseliyor",
+          desc: `Anlık amonyak değeri ${amonyak} ppm. Ortam havalandırması takip edilmeli.`,
+          iconType: "wind",
+          bgClass: "warning-bg",
+          link: "/dashboard/analiz",
+        });
+      }
+
+      if (sicaklik > 28) {
+        liveAlerts.push({
+          id: "live-temp-critical",
+          level: "KRİTİK",
+          type: "SICAKLIK",
+          title: "Yüksek Isı Stresi Riski",
+          desc: `Anlık sıcaklık ${sicaklik}°C. Hayvanlarda ısı stresi riski kritik seviyede olabilir.`,
+          iconType: "temp",
+          bgClass: "critical-bg",
+          link: "/dashboard/analiz",
+        });
+      } else if (sicaklik > 25) {
+        liveAlerts.push({
+          id: "live-temp-warning",
+          level: "UYARI",
+          type: "SICAKLIK",
+          title: "Isı Stresi Riski",
+          desc: `Anlık sıcaklık ${sicaklik}°C. Soğutma ve havalandırma kontrol edilmeli.`,
+          iconType: "temp",
+          bgClass: "warning-bg",
+          link: "/dashboard/analiz",
+        });
+      }
+
+      if (nem > 80) {
+        liveAlerts.push({
+          id: "live-humidity-warning",
+          level: "UYARI",
+          type: "NEM",
+          title: "Nem Seviyesi Yüksek",
+          desc: `Anlık nem oranı %${nem}. Yüksek nem, sıcaklık etkisini artırabilir.`,
+          iconType: "humidity",
+          bgClass: "warning-bg",
+          link: "/dashboard/analiz",
+        });
+      }
+
+      updateAlertsAndStats(liveAlerts);
+      setLastScanTime(new Date());
+      setEngineStatus("Aktif");
     } catch (err) {
-      console.error("Analiz hatası:", err);
+      console.error("Anlık sensör verisi alınamadı:", err);
+      setEngineStatus("Hata");
+    } finally {
       setLoading(false);
     }
   };
 
-  // Aksiyon Log Simülasyonu Fonksiyonu
-  const handleAction = (alertTitle) => {
+  const fetchHistoryAlerts = async () => {
+    try {
+      setLoading(true);
+      setEngineStatus("Taranıyor");
+
+      const [prodRes, envRes] = await Promise.all([
+        axios.get(`${API_BASE}/productivity`),
+        axios.get(`${API_BASE}/environment`),
+      ]);
+
+      const foundAnomalies = [];
+
+      envRes.data.forEach((env) => {
+        const prod = prodRes.data.find((p) => p.tarih === env.tarih);
+
+        if (prod && prod.sutVerimi < 15) {
+          foundAnomalies.push({
+            id: `verim-${env.id}`,
+            level: "KRİTİK",
+            type: "VERİM",
+            title: "Ani Verim Düşüşü",
+            desc: `Süt verimi ${prod.sutVerimi}L seviyesine düştü. Verim kaybı riski yüksek.`,
+            iconType: "activity",
+            date: env.tarih,
+            bgClass: "critical-bg",
+            link: "/dashboard/sut",
+          });
+        }
+
+        if (env.sicaklik > 25) {
+          foundAnomalies.push({
+            id: `isi-${env.id}`,
+            level: "UYARI",
+            type: "SICAKLIK",
+            title: "Isı Stresi Riski",
+            desc: `Sıcaklık ${env.sicaklik}°C. Soğutma ve havalandırma kontrol edilmeli.`,
+            iconType: "temp",
+            date: env.tarih,
+            bgClass: "warning-bg",
+            link: "/dashboard/analiz",
+          });
+        }
+
+        if (env.amonyak > 22) {
+          foundAnomalies.push({
+            id: `nh3-${env.id}`,
+            level: "KRİTİK",
+            type: "AMONYAK",
+            title: "Hava Kalitesi Kritik",
+            desc: `Amonyak ${env.amonyak} ppm. Havalandırma protokolü gerekli.`,
+            iconType: "wind",
+            date: env.tarih,
+            bgClass: "purple-bg",
+            link: "/dashboard/analiz",
+          });
+        }
+      });
+
+      const reversed = foundAnomalies.reverse();
+      setAllHistoryAlerts(reversed);
+
+      const dates = [...new Set(reversed.map((a) => a.date))];
+      const firstDate = dates[0] || "";
+      setSelectedDate(firstDate);
+
+      updateAlertsAndStats(firstDate ? reversed.filter((a) => a.date === firstDate) : reversed);
+
+      setLastScanTime(new Date());
+      setEngineStatus("Aktif");
+    } catch (err) {
+      console.error("Geçmiş analiz hatası:", err);
+      setEngineStatus("Hata");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAction = (alert) => {
+    setResolvedIds((prev) => {
+      const updated = new Set(prev);
+      updated.add(alert.id);
+      return updated;
+    });
+
     const newLog = {
       id: Date.now(),
       time: new Date().toLocaleTimeString(),
-      action: `${alertTitle} uyarısı için sisteme manuel müdahale edildi ve havalandırma protokolü başlatıldı.`,
-      status: "Başarılı"
+      action: `${alert.title} uyarısına müdahale edildi.`,
+      status: "Tamamlandı",
     };
-    setActionLogs([newLog, ...actionLogs]);
+
+    setActionLogs((prev) => [newLog, ...prev]);
   };
 
-  if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}>🧠 Analiz Motoru Çalışıyor...</div>;
+  const getAlertIcon = (iconType, resolved = false) => {
+    if (resolved) return <CheckCircle2 size={20} color="#16a34a" />;
+
+    switch (iconType) {
+      case "temp":
+        return <Thermometer size={20} color="#ea580c" />;
+      case "wind":
+        return <Wind size={20} color="#7e22ce" />;
+      case "humidity":
+        return <Droplets size={20} color="#0284c7" />;
+      case "activity":
+        return <Activity size={20} color="#b91c1c" />;
+      default:
+        return <Bell size={20} color="#475569" />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="anomali-loading-page">
+        <div className="anomali-loading-box">
+          <Sparkles size={22} />
+          <span>Analiz motoru çalışıyor...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: '30px', backgroundColor: '#fcfcfc', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-      
-      {/* 1. ÜST PANEL: DİNAMİK İSTATİSTİKLER */}
-      <div style={statsGrid}>
-        <div style={statCard}>
-          <span style={statLabel}>Aktif Kritik Uyarı</span>
-          <div style={{ ...statValue, color: '#ef4444' }}>{stats.kritik}</div>
+    <div className="anomali-page">
+      <div className="anomali-hero">
+        <div className="anomali-hero-left">
+          <div className="hero-badge">
+            {mode === "live" ? <Radio size={16} /> : <History size={16} />}
+            <span>{mode === "live" ? "Anlık Uyarı Merkezi" : "Geçmiş Anomali Analizi"}</span>
+          </div>
+
+          <h1>Anomali Analiz Merkezi</h1>
+          <p>
+            Sistem; anlık sensör verileri ve geçmiş çevresel kayıtlar üzerinden
+            riskli durumları tespit ederek müdahale sürecini takip eder.
+          </p>
         </div>
-        <div style={statCard}>
-          <span style={statLabel}>Çözülen Sorunlar</span>
-          <div style={{ ...statValue, color: '#22c55e' }}>{stats.cozulur}</div>
-        </div>
-        <div style={statCard}>
-          <span style={statLabel}>Sistem Sağlık Skoru</span>
-          <div style={{ ...statValue, color: '#3b82f6' }}>%{stats.saglik}</div>
+
+        <div className="anomali-hero-right">
+          <div className="hero-status-card">
+            <span className="hero-status-label">Motor Durumu</span>
+            <strong
+              className={`engine-status ${
+                engineStatus === "Aktif"
+                  ? "engine-ok"
+                  : engineStatus === "Taranıyor"
+                  ? "engine-warn"
+                  : "engine-error"
+              }`}
+            >
+              {engineStatus}
+            </strong>
+          </div>
+
+          <div className="hero-status-card">
+            <span className="hero-status-label">Son Tarama</span>
+            <strong>{lastScanTime ? lastScanTime.toLocaleTimeString() : "--"}</strong>
+          </div>
+
+          <button
+            className="refresh-btn"
+            onClick={mode === "live" ? fetchLiveAlerts : fetchHistoryAlerts}
+          >
+            <RefreshCcw size={16} />
+            Yenile
+          </button>
         </div>
       </div>
 
-      {/* 3. ZAMAN ÇİZGELESİ FİLTRELEME */}
-      <header style={{ marginBottom: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <div>
-          <h2 style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Bell color="#8b5cf6" /> Sistem Zekası Raporu
-          </h2>
-        </div>
-        <div style={filterBox}>
-          <Filter size={16} />
-          <select style={selectStyle}>
-            <option>Bugün (2026-03-30)</option>
-            <option>Dün</option>
-            <option>Son 7 Gün</option>
-          </select>
-        </div>
-      </header>
+      <div className="mode-switch">
+        <button
+          className={`mode-btn ${mode === "live" ? "mode-active" : ""}`}
+          onClick={() => {
+            setMode("live");
+            setResolvedIds(new Set());
+          }}
+        >
+          <Radio size={18} />
+          Anlık Veriler
+        </button>
 
-      {/* UYARI LİSTESİ */}
-      <div style={{ display: 'grid', gap: '15px' }}>
-        {alerts.map((alert) => (
-          <div key={alert.id} style={{ ...cardStyle, backgroundColor: alert.bg }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
-              <div style={iconBox}>{alert.icon}</div>
-              <div style={{ flex: 1 }}>
-                <span style={levelLabel}>{alert.level} • {alert.date}</span>
-                <h3 style={cardTitle}>{alert.title}</h3>
-                <p style={cardDesc}>{alert.desc}</p>
-                
-                {/* 2. GRAFİK YÖNLENDİRME & AKSİYON BUTONLARI */}
-                <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-                  <button onClick={() => navigate(alert.link)} style={secondaryBtn}>
-                    Grafiği İncele <ArrowRight size={14} />
-                  </button>
-                  <button onClick={() => handleAction(alert.title)} style={primaryBtn}>
-                    Aksiyon Al
-                  </button>
+        <button
+          className={`mode-btn ${mode === "history" ? "mode-active" : ""}`}
+          onClick={() => {
+            setMode("history");
+            setResolvedIds(new Set());
+          }}
+        >
+          <History size={18} />
+          Geçmiş Veriler
+        </button>
+      </div>
+
+      <div className="stats-grid">
+        <div className="stat-card stat-critical">
+          <div className="stat-icon-wrap">
+            <ShieldAlert size={22} />
+          </div>
+          <div>
+            <span className="stat-label">Kritik Uyarı</span>
+            <div className="stat-value">{stats.kritik}</div>
+          </div>
+        </div>
+
+        <div className="stat-card stat-success">
+          <div className="stat-icon-wrap">
+            <Bell size={22} />
+          </div>
+          <div>
+            <span className="stat-label">Uyarı</span>
+            <div className="stat-value">{stats.uyari}</div>
+          </div>
+        </div>
+
+        <div className="stat-card stat-health">
+          <div className="stat-icon-wrap">
+            <Siren size={22} />
+          </div>
+          <div>
+            <span className="stat-label">Sistem Sağlık Skoru</span>
+            <div className="stat-value">%{stats.saglik}</div>
+          </div>
+        </div>
+      </div>
+
+      {mode === "live" && (
+        <div className="live-sensor-grid">
+          <div className="live-sensor-card">
+            <Thermometer size={20} />
+            <span>Sıcaklık</span>
+            <strong>{sensorData.sicaklik}°C</strong>
+          </div>
+
+          <div className="live-sensor-card">
+            <Droplets size={20} />
+            <span>Nem</span>
+            <strong>%{sensorData.nem}</strong>
+          </div>
+
+          <div className="live-sensor-card">
+            <Wind size={20} />
+            <span>Amonyak</span>
+            <strong>{sensorData.amonyak} ppm</strong>
+          </div>
+        </div>
+      )}
+
+      <div className="anomali-toolbar">
+        <div className="toolbar-title">
+          <h2>{mode === "live" ? "Canlı Uyarı Akışı" : "Geçmiş Uyarı Akışı"}</h2>
+          <span>
+            {mode === "live"
+              ? "Son sensör verisine göre oluşturulan anlık uyarılar"
+              : "Productivity ve environment kayıtlarına göre bulunan anomaliler"}
+          </span>
+        </div>
+
+        {mode === "history" && (
+          <div className="filter-box">
+            <Filter size={16} />
+            <select
+              className="filter-select"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+            >
+              {[...new Set(allHistoryAlerts.map((a) => a.date))].map((date) => (
+                <option key={date} value={date}>
+                  {date}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      <div className="alerts-list">
+        {alerts.length > 0 ? (
+          alerts.map((alert) => {
+            const resolved = resolvedIds.has(alert.id);
+
+            return (
+              <div
+                key={alert.id}
+                className={`alert-card ${alert.bgClass} ${
+                  resolved ? "resolved-card" : ""
+                }`}
+              >
+                <div className="alert-left-bar"></div>
+
+                <div className="alert-main">
+                  <div className="alert-icon-box">
+                    {getAlertIcon(alert.iconType, resolved)}
+                  </div>
+
+                  <div className="alert-content">
+                    <div className="alert-top-row">
+                      <div className="alert-meta">
+                        <span
+                          className={`alert-level ${
+                            alert.level === "KRİTİK"
+                              ? "level-critical"
+                              : "level-warning"
+                          }`}
+                        >
+                          {alert.level}
+                        </span>
+                        <span className="alert-type">{alert.type}</span>
+                        <span className="alert-date">
+                          {mode === "live"
+                            ? lastScanTime?.toLocaleTimeString() || "--"
+                            : alert.date}
+                        </span>
+                      </div>
+
+                      {resolved && (
+                        <span className="resolved-badge">✅ MÜDAHALE EDİLDİ</span>
+                      )}
+                    </div>
+
+                    <h3 className="alert-title">{alert.title}</h3>
+                    <p className="alert-desc">{alert.desc}</p>
+
+                    {!resolved && (
+                      <div className="alert-actions">
+                        <button
+                          onClick={() => navigate(alert.link)}
+                          className="btn-secondary"
+                        >
+                          Grafiği İncele <ArrowRight size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleAction(alert)}
+                          className="btn-primary"
+                        >
+                          Aksiyon Al
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            );
+          })
+        ) : (
+          <div className="empty-state-card">
+            <CheckCircle2 size={28} />
+            <h3>{mode === "live" ? "Anlık Anomali Yok" : "Geçmiş Kayıt Bulunamadı"}</h3>
+            <p>
+              {mode === "live"
+                ? "Son sensör verilerine göre kritik veya riskli durum tespit edilmedi."
+                : "Seçilen tarihte herhangi bir kritik durum tespit edilmedi."}
+            </p>
           </div>
-        ))}
+        )}
       </div>
 
-      {/* 4. MÜDAHALE GEÇMİŞİ (LOGS) */}
-      <div style={{ marginTop: '50px' }}>
-        <h3 style={{ color: '#1e293b', fontSize: '18px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Clock size={20} color="#64748b" /> Müdahale Geçmişi
+      <div className="log-section">
+        <h3 className="log-title">
+          <Clock size={20} color="#64748b" />
+          Müdahale Geçmişi
         </h3>
-        <div style={logContainer}>
+
+        <div className="log-container">
           {actionLogs.length > 0 ? (
-            actionLogs.map(log => (
-              <div key={log.id} style={logItem}>
-                <span style={logTime}>{log.time}</span>
-                <p style={logText}>{log.action}</p>
-                <span style={logStatus}>{log.status}</span>
+            actionLogs.map((log) => (
+              <div key={log.id} className="log-item">
+                <span className="log-time">{log.time}</span>
+                <p className="log-text">{log.action}</p>
+                <span className="log-status">{log.status}</span>
               </div>
             ))
           ) : (
-            <p style={{ color: '#94a3b8', fontSize: '13px', textAlign: 'center', padding: '20px' }}>
-              Henüz kaydedilmiş bir müdahale bulunmuyor.
-            </p>
+            <div className="empty-log">
+              Henüz herhangi bir müdahale kaydı oluşmadı.
+            </div>
           )}
         </div>
       </div>
     </div>
   );
 };
-
-// --- MODERN STİLLER ---
-const statsGrid = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '40px' };
-const statCard = { background: '#fff', padding: '20px', borderRadius: '15px', border: '1px solid #f1f5f9', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' };
-const statLabel = { fontSize: '12px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' };
-const statValue = { fontSize: '28px', fontWeight: '800', marginTop: '5px' };
-
-const filterBox = { display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '14px', background: '#fff', padding: '8px 15px', borderRadius: '10px', border: '1px solid #e2e8f0' };
-const selectStyle = { border: 'none', outline: 'none', color: '#1e293b', fontWeight: '600', cursor: 'pointer', background: 'transparent' };
-
-const cardStyle = { padding: '20px', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)' };
-const iconBox = { background: '#fff', padding: '10px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' };
-const levelLabel = { fontSize: '11px', fontWeight: '800', color: '#64748b' };
-const cardTitle = { margin: '5px 0', fontSize: '17px', color: '#0f172a', fontWeight: '700' };
-const cardDesc = { margin: 0, color: '#475569', fontSize: '14px', lineHeight: '1.5' };
-
-const primaryBtn = { background: '#1e293b', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px' };
-const secondaryBtn = { background: 'transparent', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' };
-
-const logContainer = { background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '5px' };
-const logItem = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 15px', borderBottom: '1px solid #f1f5f9' };
-const logTime = { fontSize: '12px', fontWeight: 'bold', color: '#64748b', width: '100px' };
-const logText = { flex: 1, margin: '0 15px', fontSize: '13px', color: '#1e293b' };
-const logStatus = { fontSize: '11px', fontWeight: '800', color: '#16a34a', backgroundColor: '#f0fdf4', padding: '4px 8px', borderRadius: '6px' };
 
 export default AnomaliAnalizpage;

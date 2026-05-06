@@ -4,7 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   BarChart, Bar, AreaChart, Area 
 } from 'recharts';
-// --- YENİ BİLEŞENİ İÇE AKTARIYORUZ ---
+
 import AmonyakGrafik from "./AmonyakGrafik"; 
 
 const GenelOzetpage = () => {
@@ -17,7 +17,7 @@ const GenelOzetpage = () => {
     fetchData();
   }, []);
 
-  // --- HAFTALIK GRUPLAMA FONKSİYONU ---
+  
   const getWeeklyData = (data, valueKey) => {
     if (!data || data.length === 0) return [];
     
@@ -39,7 +39,7 @@ const GenelOzetpage = () => {
       const prodRes = await axios.get("http://localhost:8080/api/productivity");
       const envRes = await axios.get("http://localhost:8080/api/environment");
       
-      // 1. Üretim Verileri (Süt ve Yem)
+      
       const weeklyProd = getWeeklyData(prodRes.data, "sutVerimi");
       const weeklyYem = getWeeklyData(prodRes.data, "yemTuketimi");
       
@@ -48,15 +48,15 @@ const GenelOzetpage = () => {
         yemTuketimi: weeklyYem[index] ? weeklyYem[index].yemTuketimi : 0
       }));
 
-      // 2. Ortam Verileri (Sıcaklık, Nem ve AMONYAK)
+      
       const weeklyEnv = getWeeklyData(envRes.data, "sicaklik");
       const weeklyNem = getWeeklyData(envRes.data, "nem");
-      const weeklyAmonyak = getWeeklyData(envRes.data, "amonyak"); // Amonyak verisini işliyoruz
+      const weeklyAmonyak = getWeeklyData(envRes.data, "amonyak"); 
 
       const mergedWeeklyEnv = weeklyEnv.map((item, index) => ({
         ...item,
         nem: weeklyNem[index] ? weeklyNem[index].nem : 0,
-        amonyak: weeklyAmonyak[index] ? weeklyAmonyak[index].amonyak : 0 // State'e ekliyoruz
+        amonyak: weeklyAmonyak[index] ? weeklyAmonyak[index].amonyak : 0 
       }));
 
       setProductivityData(mergedWeeklyProd);
@@ -84,7 +84,7 @@ const GenelOzetpage = () => {
   return (
     <div className="summary-container" style={{ padding: '20px' }}>
       
-      {/* 1. DOSYA YÜKLEME ALANI */}
+      
       <section style={{ marginBottom: '30px', padding: '25px', background: '#fff', borderRadius: '15px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
             <span style={{ fontSize: '24px' }}>📂</span>
@@ -97,15 +97,15 @@ const GenelOzetpage = () => {
         </form>
       </section>
 
-      {/* 2. YENİ EKLENEN AMONYAK GRAFİĞİ (TAM GENİŞLİK) */}
+     
       <div style={{ marginBottom: '30px' }}>
         <AmonyakGrafik data={envData} />
       </div>
 
-      {/* 3. DİĞER ANALİZ GRAFİKLERİ (2'Lİ GRID) */}
+      
       <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
         
-        {/* Grafik 1: Haftalık Süt Verimi */}
+       
         <div className="chart-card" style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
           <h4 style={{ color: '#4a5568' }}>🐄 Haftalık Ortalama Süt Verimi</h4>
           <ResponsiveContainer width="100%" height={300}>
@@ -120,7 +120,7 @@ const GenelOzetpage = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Grafik 2: Haftalık Sıcaklık */}
+       
         <div className="chart-card" style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
           <h4 style={{ color: '#4a5568' }}>🌡️ Haftalık Ortalama Sıcaklık</h4>
           <ResponsiveContainer width="100%" height={300}>
@@ -140,7 +140,7 @@ const GenelOzetpage = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Grafik 3: Haftalık Yem */}
+        
         <div className="chart-card" style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
           <h4 style={{ color: '#4a5568' }}>🌾 Haftalık Toplam/Ort. Yem</h4>
           <ResponsiveContainer width="100%" height={300}>
@@ -154,7 +154,6 @@ const GenelOzetpage = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Grafik 4: Haftalık Nem */}
         <div className="chart-card" style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
           <h4 style={{ color: '#4a5568' }}>💧 Haftalık Ortalama Nem</h4>
           <ResponsiveContainer width="100%" height={300}>

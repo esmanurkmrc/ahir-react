@@ -1,10 +1,10 @@
 import React from "react";
-import { useNavigate } from "react-router-dom"; // Sayfa geçişi için eklendi
+import { useNavigate } from "react-router-dom"; 
 import "../CSS/anasayfa.css"; 
 import videoBg from "../assets/video1.mp4"; 
 
 function Anasayfapage() {
-  const navigate = useNavigate(); // Yönlendirme fonksiyonunu tanımladık
+  const navigate = useNavigate(); 
 
   return (
     <div className="anasayfa-hero">
@@ -18,7 +18,7 @@ function Anasayfapage() {
         <h1 className="anasayfa-text-main">Ahır İçi Mikroklima</h1>
         <h2 className="anasayfa-text-sub">İzleme ve Analiz Sistemi</h2>
         
-        {/* Giriş Butonu Eklendi */}
+        
         <button 
           className="anasayfa-button" 
           onClick={() => navigate("/kayit")}

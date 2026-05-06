@@ -11,43 +11,53 @@ import GenelOzetpage from "./page/GenelOzetpage";
 import SensorVerileripage from "./page/SensorVerileripage"; 
 import Raporlamapage from "./page/Raporlamapage"; 
 
-// --- SÜT VE ANALİZ SAYFALARI IMPORTLARI ---
+// --- SENSÖR VE DASHBOARD SAYFALARI ---
+import SensorDataPage from "./page/SensorDataPage";
+
+// --- SÜT VE ANALİZ SAYFALARI ---
 import SütVerileripage from "./page/SütVerileripage"; 
 import KorelasyonAnalizpage from "./page/KorelasyonAnalizpage";
-import AnomaliAnalizpage from "./page/AnomaliAnalizpage"; // SİSTEM ZEKASI SAYFASI EKLENDİ
+import AnomaliAnalizpage from "./page/AnomaliAnalizpage"; 
+
+// --- YAPAY ZEKA VE TAHMİN ---
+import TahminAnalizpage from "./page/TahminAnalizpage"; 
+
+// 🔥 YENİ: AYARLAR SAYFASI IMPORTU
+import AyarlarPage from "./page/AyarlarPage";
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Kamu Alanı Sayfaları */}
+        {/* Kamu Sayfaları */}
         <Route path="/" element={<Anasayfapage />} />
         <Route path="/kayit" element={<Kayitpage />} />
         <Route path="/login" element={<Girispage />} />
 
-        {/* Dashboard ve Nested (İç İçe) Yollar */}
+        {/* Dashboard ve Alt Sayfalar */}
         <Route path="/dashboard" element={<Dashboardpage />}>
-          {/* Dashboard açıldığında direkt genel özete yönlendir */}
           <Route index element={<Navigate to="genel" />} />
           
           <Route path="genel" element={<GenelOzetpage />} />
           <Route path="hayvanlar" element={<HayvanlarPage />} />
-          
           <Route path="sut" element={<SütVerileripage />} />
 
-          {/* --- KORELASYON ANALİZİ YOLU --- */}
           <Route path="analiz" element={<KorelasyonAnalizpage />} />
-
-          {/* --- SİSTEM ZEKASI (ANOMALİ) YOLU BURAYA EKLENDİ --- */}
           <Route path="anomali" element={<AnomaliAnalizpage />} />
+          <Route path="tahmin" element={<TahminAnalizpage />} />
           
           <Route path="sensor" element={<SensorVerileripage />} />
+          <Route path="sensor-data" element={<SensorDataPage />} />
+
           <Route path="rapor" element={<Raporlamapage />} />
+
+          {/* 🔥 YENİ: AYARLAR ROTASI */}
+          <Route path="ayarlar" element={<AyarlarPage />} />
           
-          <Route path="saglik" element={<div className="placeholder-section" style={{padding: '20px'}}><h2>Sağlık Kayıtları Yakında</h2></div>} />
+          <Route path="saglik" element={<div style={{padding: '20px'}}><h2>Sağlık Kayıtları Yakında</h2></div>} />
         </Route>
 
-        {/* Tanımlanmamış yolları ana sayfaya yönlendir */}
+        {/* Tanımsız rotaları ana sayfaya yönlendir */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

@@ -18,7 +18,7 @@ function HayvanlarPage() {
   const [tur, setTur] = useState("inek");
   const [editId, setEditId] = useState(null);
 
-  // Backend’den hayvanları çek
+  
   const hayvanlariGetir = async () => {
     try {
       const response = await axios.get("http://localhost:8080/api/hayvanlar");
@@ -39,15 +39,15 @@ function HayvanlarPage() {
   const hayvanEkle = async () => {
     try {
       if (editId) {
-        // Güncelleme
+    
         await axios.put(`http://localhost:8080/api/hayvanlar/${editId}`, yeniHayvan);
         setEditId(null);
       } else {
-        // Yeni ekleme
+      
         await axios.post(`http://localhost:8080/api/hayvanlar/${tur}`, yeniHayvan);
       }
 
-      hayvanlariGetir(); // İşlem sonrası listeyi yenile
+      hayvanlariGetir(); 
       setYeniHayvan({
         kupeNo: "", irk: "", cinsiyet: "", dogumTarihi: "",
         durum: "", sonAgirlik: "", gunlukSutVerimi: "", asiTakvimi: "",
@@ -72,7 +72,7 @@ function HayvanlarPage() {
   const hayvanDuzenle = (hayvan) => {
     setYeniHayvan({ ...hayvan });
     setEditId(hayvan.id);
-    // Düzenle butonuna basınca sayfa en üste (forma) yumuşak geçiş yapar
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -89,7 +89,7 @@ function HayvanlarPage() {
       <h1>🐄 Hayvan Yönetimi</h1>
 
       <div className="layout-wrapper">
-        {/* --- SOL TARAF: FORM --- */}
+      
         <div className="hayvan-ekle">
           <h2>{editId ? "✍️ Hayvanı Güncelle" : "➕ Yeni Hayvan Ekle"}</h2>
           
@@ -109,7 +109,7 @@ function HayvanlarPage() {
             <input type="number" name="gunlukSutVerimi" placeholder="Günlük Süt (L)" value={yeniHayvan.gunlukSutVerimi} onChange={handleChange} />
             <input type="text" name="asiTakvimi" placeholder="Aşı Takvimi" value={yeniHayvan.asiTakvimi} onChange={handleChange} />
 
-            {/* Düzenleme modunda tür değiştirilemez, sadece eklerken gösterilir */}
+           
             {!editId && (
               <select value={tur} onChange={(e) => setTur(e.target.value)} className="tur-select">
                 <option value="inek">İnek</option>
@@ -130,7 +130,7 @@ function HayvanlarPage() {
           )}
         </div>
 
-        {/* --- SAĞ TARAF: LİSTE --- */}
+     
         <div className="hayvan-listesi">
           <div className="liste-ust-bar">
             <h2>Kayıtlı Hayvanlar</h2>

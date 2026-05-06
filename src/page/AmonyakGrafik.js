@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 
 const AmonyakGrafik = ({ data }) => {
-  // Eğer veri yoksa boş dönmesin diye kontrol
+  
   if (!data || data.length === 0) {
     return <div style={{ padding: '20px', color: '#7f8c8d' }}>Grafik verisi yükleniyor...</div>;
   }
@@ -18,7 +18,7 @@ const AmonyakGrafik = ({ data }) => {
       boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
       border: '1px solid #edf2f7' 
     }}>
-      {/* Başlık ve Durum Bilgisi */}
+      
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '25px' }}>
         <div>
           <h3 style={{ fontSize: '18px', color: '#2d3748', margin: 0, fontWeight: '700' }}>
@@ -29,7 +29,7 @@ const AmonyakGrafik = ({ data }) => {
           </p>
         </div>
         
-        {/* Karar Destek Bilgi Kutusu */}
+        
         <div style={{ 
           padding: '8px 15px', 
           backgroundColor: '#fef2f2', 
@@ -79,7 +79,7 @@ const AmonyakGrafik = ({ data }) => {
               itemStyle={{ fontWeight: 'bold' }}
             />
             
-            {/* --- KRİTİK EŞİK ÇİZGİSİ (REFERENCE LINE) --- */}
+           
             <ReferenceLine 
               y={25} 
               stroke="#e53e3e" 
@@ -96,7 +96,7 @@ const AmonyakGrafik = ({ data }) => {
               />
             </ReferenceLine>
 
-            {/* Amonyak Veri Çizgisi */}
+          
             <Line 
               type="monotone" 
               dataKey="amonyak" 
@@ -111,7 +111,7 @@ const AmonyakGrafik = ({ data }) => {
         </ResponsiveContainer>
       </div>
       
-      {/* Analiz Notu Bölümü */}
+  
       <div style={{ 
         marginTop: '20px', 
         padding: '15px', 

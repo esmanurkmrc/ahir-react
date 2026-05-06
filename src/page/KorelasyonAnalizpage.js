@@ -46,7 +46,7 @@ const KorelasyonAnalizpage = () => {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
         
-        {/* 1. Sıcaklık ve Süt Verimi (Sadeleşmiş Mor ve Tok Lacivert) */}
+      
         <div style={cardStyle}>
           <h4 style={cardTitleStyle}>Sıcaklık (°C) ve Süt Verimi (L) Takibi</h4>
           <ResponsiveContainer width="100%" height={280}>
@@ -57,14 +57,14 @@ const KorelasyonAnalizpage = () => {
               <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} stroke="#1e1b4b" label={{ value: 'Litre', angle: 90, position: 'insideRight', fill: '#1e1b4b', fontSize: 12 }} />
               <Tooltip contentStyle={{ border: '1px solid #eee', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
               <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-              {/* Dolgu Rengi (Fill) Çok Açık Purple */}
+             
               <Area yAxisId="left" type="monotone" dataKey="sicaklik" fill="#faf5ff" stroke="#a855f7" strokeWidth={2} name="Sıcaklık" />
               <Line yAxisId="right" type="monotone" dataKey="sutVerimi" stroke="#1e1b4b" strokeWidth={3} dot={false} name="Süt Verimi" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
 
-        {/* 2. Amonyak Dağılım Analizi (Sade Kiremit Turuncusu) */}
+      
         <div style={cardStyle}>
           <h4 style={cardTitleStyle}>Amonyak (ppm) Dağılım Analizi</h4>
           <ResponsiveContainer width="100%" height={280}>
@@ -78,7 +78,7 @@ const KorelasyonAnalizpage = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* 3. Nem ve Verimlilik İlişkisi (Sadeleşmiş Bordo ve Tok Lacivert) */}
+        
         <div style={cardStyle}>
           <h4 style={cardTitleStyle}>Nem (%) ve Verimlilik (L) İlişkisi</h4>
           <ResponsiveContainer width="100%" height={280}>
@@ -95,7 +95,7 @@ const KorelasyonAnalizpage = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* 4. Işık Şiddeti Etki Analizi (Sadeleşmiş Mor Noktalar) */}
+       
         <div style={cardStyle}>
           <h4 style={cardTitleStyle}>Işık Şiddeti (Lux) Etki Analizi</h4>
           <ResponsiveContainer width="100%" height={280}>
@@ -118,8 +118,8 @@ const cardStyle = {
   background: '#ffffff', 
   padding: '20px', 
   borderRadius: '12px', 
-  border: '1px solid #ececec', // Çok hafif bir çerçeve
-  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.03)' // Neredeyse görünmez gölge
+  border: '1px solid #ececec', 
+  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.03)' 
 };
 
 const cardTitleStyle = { 
@@ -127,7 +127,7 @@ const cardTitleStyle = {
   fontSize: '14px', 
   color: '#555', 
   fontWeight: '600',
-  textTransform: 'uppercase', // Başlıkları küçültüp sadeleştirdik
+  textTransform: 'uppercase', 
   letterSpacing: '0.5px'
 };
 
