@@ -5,7 +5,9 @@ import "../CSS/dashboard.css";
 function Dashboardpage() {
   const navigate = useNavigate();
   const location = useLocation();
+
   const [kullaniciIsmi, setKullaniciIsmi] = useState("");
+  const [sonGuncelleme, setSonGuncelleme] = useState("-");
 
   const [stats, setStats] = useState({
     amonyak: 0,
@@ -16,12 +18,34 @@ function Dashboardpage() {
     durumMesaji: "Sistem Aktif",
   });
 
+  const [thi, setThi] = useState(0);
+
+  const currentPath = location.pathname.split("/").pop();
+  const genelSayfaMi = currentPath === "genel";
+
+  const hesaplaTHI = (sicaklik, nem) => {
+    const T = Number(sicaklik || 0);
+    const RH = Number(nem || 0);
+
+    return (
+      1.8 * T +
+      32 -
+      (0.55 - 0.0055 * RH) * (1.8 * T - 26)
+    );
+  };
+
   const fetchStats = async () => {
     try {
-      const response = await fetch("http://localhost:8080/api/environment/stats");
+      const response = await fetch("http://localhost:8080/api/sensor-data/son");
+
       if (response.ok) {
         const data = await response.json();
         setStats(data);
+
+        const thiDegeri = hesaplaTHI(data.sicaklik, data.nem);
+        setThi(thiDegeri);
+
+        setSonGuncelleme(new Date().toLocaleTimeString("tr-TR"));
       }
     } catch (error) {
       console.error("Veri senkronizasyon hatası:", error);
@@ -33,14 +57,86 @@ function Dashboardpage() {
     setKullaniciIsmi(isim || "Mühendis");
 
     fetchStats();
+
     const interval = setInterval(fetchStats, 30000);
+
     return () => clearInterval(interval);
   }, []);
 
-  const currentPath = location.pathname.split("/").pop();
+  const getAmonyakColor = (val) =>
+    Number(val) > 25 ? "#ff4757" : "#2ed573";
 
-  const getAmonyakColor = (val) => (val > 25 ? "#ff4757" : "#2ed573");
-  const getRiskColor = (val) => (val > 60 ? "#ffa502" : "#54a0ff");
+  const getRiskColor = (val) => {
+    const risk = Number(val || 0);
+    if (risk >= 75) return "#ff4757";
+    if (risk >= 50) return "#ffa502";
+    return "#2ed573";
+  };
+
+  const getRiskText = (val) => {
+    const risk = Number(val || 0);
+    if (risk >= 75) return "Kritik Risk";
+    if (risk >= 50) return "Orta Risk";
+    return "Normal";
+  };
+
+  const getThiColor = (val) => {
+    if (val >= 75) return "#ff4757";
+    if (val >= 72) return "#ffa502";
+    return "#2ed573";
+  };
+
+  const getThiText = (val) => {
+    if (val >= 75) return "Kritik Isı Stresi";
+    if (val >= 72) return "Isı Stresi Riski";
+    return "Normal Konfor";
+  };
+
+  const getThiIcon = (val) => {
+    if (val >= 75) return "🔴";
+    if (val >= 72) return "🟡";
+    return "🟢";
+  };
+
+  const getKritikUyarilar = () => {
+    const uyarilar = [];
+
+    if (thi >= 72) {
+      uyarilar.push({
+        baslik: "THI kritik seviyeye yaklaştı",
+        aciklama: `Mevcut THI değeri ${thi.toFixed(1)} olarak hesaplandı.`,
+        renk: getThiColor(thi),
+      });
+    }
+
+    if (Number(stats.amonyak || 0) > 25) {
+      uyarilar.push({
+        baslik: "Amonyak seviyesi yüksek",
+        aciklama: `NH3 değeri ${Number(stats.amonyak || 0).toFixed(1)} ppm seviyesinde.`,
+        renk: "#ff4757",
+      });
+    }
+
+    if (Number(stats.sicaklik || 0) >= 30) {
+      uyarilar.push({
+        baslik: "Sıcaklık kritik seviyede",
+        aciklama: `Ahır içi sıcaklık ${Number(stats.sicaklik || 0).toFixed(1)} °C.`,
+        renk: "#ff4757",
+      });
+    }
+
+    if (uyarilar.length === 0) {
+      uyarilar.push({
+        baslik: "Sistem normal çalışıyor",
+        aciklama: "Kritik seviyede çevresel risk tespit edilmedi.",
+        renk: "#2ed573",
+      });
+    }
+
+    return uyarilar;
+  };
+
+  const kritikUyarilar = getKritikUyarilar();
 
   const handleLogout = () => {
     localStorage.removeItem("kullaniciAdi");
@@ -59,16 +155,19 @@ function Dashboardpage() {
       <aside
         style={{
           width: "280px",
+          minWidth: "280px",
+          height: "100vh",
           backgroundColor: "#2f3542",
           color: "#ffffff",
           display: "flex",
           flexDirection: "column",
           boxShadow: "4px 0 10px rgba(0,0,0,0.2)",
+          overflow: "hidden",
         }}
       >
         <div
           style={{
-            padding: "40px 20px",
+            padding: "28px 20px",
             textAlign: "center",
             background: "#222f3e",
           }}
@@ -95,84 +194,14 @@ function Dashboardpage() {
           </h1>
         </div>
 
-        <div
+        <nav
           style={{
-            padding: "20px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "15px",
+            flex: 1,
+            marginTop: "12px",
+            overflowY: "auto",
+            paddingBottom: "10px",
           }}
         >
-          <div style={statusCardStyle}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span style={cardLabelStyle}>AMONYAK (NH3)</span>
-              <div
-                style={{
-                  ...dotStyle,
-                  backgroundColor: getAmonyakColor(stats.amonyak),
-                }}
-              ></div>
-            </div>
-            <div
-              style={{
-                fontSize: "24px",
-                fontWeight: "bold",
-                color: getAmonyakColor(stats.amonyak),
-              }}
-            >
-              {stats.amonyak.toFixed(1)}{" "}
-              <small style={{ fontSize: "12px", color: "#ced4da" }}>ppm</small>
-            </div>
-          </div>
-
-          <div style={{ ...statusCardStyle, borderLeft: "4px solid #2ecc71" }}>
-            <span style={cardLabelStyle}>GÜNLÜK SÜT ÜRETİMİ</span>
-            <div style={{ fontSize: "20px", fontWeight: "bold", color: "#fff" }}>
-              {stats.gunlukSutVerimi}{" "}
-              <small style={{ fontSize: "12px", color: "#ced4da" }}>Litre</small>
-            </div>
-          </div>
-
-          <div style={statusCardStyle}>
-            <span style={cardLabelStyle}>SİSTEM RİSKİ</span>
-            <div
-              style={{
-                fontSize: "24px",
-                fontWeight: "bold",
-                color: getRiskColor(stats.riskSkoru),
-              }}
-            >
-              %{stats.riskSkoru}
-            </div>
-            <div
-              style={{
-                height: "4px",
-                width: "100%",
-                backgroundColor: "#57606f",
-                marginTop: "10px",
-                borderRadius: "2px",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  height: "100%",
-                  width: `${stats.riskSkoru}%`,
-                  backgroundColor: getRiskColor(stats.riskSkoru),
-                  transition: "0.5s ease",
-                }}
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <nav style={{ flexGrow: 1, marginTop: "10px", overflowY: "auto" }}>
           <button
             onClick={() => navigate("/dashboard/genel")}
             style={navLinkStyle(currentPath === "genel")}
@@ -209,6 +238,13 @@ function Dashboardpage() {
           </button>
 
           <button
+            onClick={() => navigate("/dashboard/anlik-verim")}
+            style={navLinkStyle(currentPath === "anlik-verim")}
+          >
+            🤖 Anlık Verim Analizi
+          </button>
+
+          <button
             onClick={() => navigate("/dashboard/analiz")}
             style={navLinkStyle(currentPath === "analiz")}
           >
@@ -230,13 +266,19 @@ function Dashboardpage() {
           </button>
 
           <button
+            onClick={() => navigate("/dashboard/canli-analiz")}
+            style={navLinkStyle(currentPath === "canli-analiz")}
+          >
+            📈 Canlı Analiz
+          </button>
+
+          <button
             onClick={() => navigate("/dashboard/rapor")}
             style={navLinkStyle(currentPath === "rapor")}
           >
             📋 Rapor Çıktısı
           </button>
 
-          {/* EKLENEN AYARLAR BUTONU */}
           <button
             onClick={() => navigate("/dashboard/ayarlar")}
             style={navLinkStyle(currentPath === "ayarlar")}
@@ -245,7 +287,7 @@ function Dashboardpage() {
           </button>
         </nav>
 
-        <div style={{ padding: "20px" }}>
+        <div style={{ padding: "16px 18px" }}>
           <button onClick={handleLogout} style={logoutButtonStyle}>
             OTURUMU KAPAT
           </button>
@@ -268,18 +310,201 @@ function Dashboardpage() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            gap: "20px",
           }}
         >
           <div style={{ color: "#2f3542", fontWeight: "600" }}>
             <span style={{ color: "#747d8c" }}>Sistem Durumu:</span>{" "}
             <span style={{ color: "#2ed573" }}>● Çevrimiçi</span>
           </div>
+
           <div style={{ color: "#2f3542", fontWeight: "500" }}>
-            Operatör: <strong style={{ color: "#54a0ff" }}>{kullaniciIsmi}</strong> 👋
+            Operatör:{" "}
+            <strong style={{ color: "#54a0ff" }}>{kullaniciIsmi}</strong> 👋
           </div>
         </header>
 
-        <div style={{ padding: "40px", flexGrow: 1 }}>
+        {genelSayfaMi && (
+          <>
+            <div style={{ padding: "24px 40px 0 40px" }}>
+              <div style={topStatsGridStyle}>
+                <div style={topCardStyle}>
+                  <div style={cardTopRowStyle}>
+                    <span style={topCardLabelStyle}>AMONYAK (NH3)</span>
+
+                    <span
+                      style={{
+                        ...dotStyle,
+                        backgroundColor: getAmonyakColor(stats.amonyak),
+                      }}
+                    ></span>
+                  </div>
+
+                  <h2
+                    style={{
+                      color: getAmonyakColor(stats.amonyak),
+                      margin: "8px 0 4px",
+                    }}
+                  >
+                    {Number(stats.amonyak || 0).toFixed(1)}
+                    <small style={unitStyle}> ppm</small>
+                  </h2>
+
+                  <p style={cardInfoStyle}>Kritik sınır: 25 ppm</p>
+                </div>
+
+                <div
+                  style={{
+                    ...topCardStyle,
+                    borderLeft: `5px solid ${getThiColor(thi)}`,
+                    boxShadow: `0 8px 28px ${getThiColor(thi)}22`,
+                  }}
+                >
+                  <div style={cardTopRowStyle}>
+                    <span style={topCardLabelStyle}>KONFOR ENDEKSİ (THI)</span>
+                    <span>{getThiIcon(thi)}</span>
+                  </div>
+
+                  <h2
+                    style={{
+                      color: getThiColor(thi),
+                      margin: "8px 0 4px",
+                    }}
+                  >
+                    {thi.toFixed(1)}
+                  </h2>
+
+                  <p
+                    style={{
+                      ...cardInfoStyle,
+                      color: getThiColor(thi),
+                      fontWeight: "800",
+                    }}
+                  >
+                    {getThiText(thi)}
+                  </p>
+
+                  <div style={progressTrackStyle}>
+                    <div
+                      style={{
+                        ...progressFillStyle,
+                        width: `${Math.min((thi / 90) * 100, 100)}%`,
+                        backgroundColor: getThiColor(thi),
+                      }}
+                    ></div>
+                  </div>
+
+                  <p style={cardInfoStyle}>Kritik eşik: THI 72</p>
+                </div>
+
+                <div style={topCardStyle}>
+                  <span style={topCardLabelStyle}>SİSTEM RİSKİ</span>
+
+                  <h2
+                    style={{
+                      color: getRiskColor(stats.riskSkoru),
+                      margin: "8px 0 4px",
+                    }}
+                  >
+                    %{Number(stats.riskSkoru || 0)}
+                  </h2>
+
+                  <p
+                    style={{
+                      ...cardInfoStyle,
+                      color: getRiskColor(stats.riskSkoru),
+                      fontWeight: "800",
+                    }}
+                  >
+                    {getRiskText(stats.riskSkoru)}
+                  </p>
+
+                  <div style={progressTrackStyle}>
+                    <div
+                      style={{
+                        ...progressFillStyle,
+                        width: `${Number(stats.riskSkoru || 0)}%`,
+                        backgroundColor: getRiskColor(stats.riskSkoru),
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div style={topCardStyle}>
+                  <span style={topCardLabelStyle}>CANLI ÖLÇÜMLER</span>
+
+                  <div style={liveMeasureGridStyle}>
+                    <div style={liveMeasureItemStyle}>
+                      <strong style={liveMeasureValueStyle}>
+                        {Number(stats.sicaklik || 0).toFixed(1)}°C
+                      </strong>
+                      <small style={liveMeasureLabelStyle}>Sıcaklık</small>
+                    </div>
+
+                    <div style={liveMeasureItemStyle}>
+                      <strong style={liveMeasureValueStyle}>
+                        %{Number(stats.nem || 0).toFixed(1)}
+                      </strong>
+                      <small style={liveMeasureLabelStyle}>Nem</small>
+                    </div>
+
+                    <div style={liveMeasureTimeItemStyle}>
+                      <strong style={liveMeasureValueStyle}>
+                        {sonGuncelleme}
+                      </strong>
+                      <small style={liveMeasureLabelStyle}>Son Veri</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: "22px 40px 0 40px",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: "16px",
+              }}
+            >
+              {kritikUyarilar.map((uyari, index) => (
+                <div
+                  key={index}
+                  style={{
+                    backgroundColor: "#fff",
+                    borderRadius: "16px",
+                    padding: "18px",
+                    borderLeft: `5px solid ${uyari.renk}`,
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <div
+                    style={{
+                      color: uyari.renk,
+                      fontWeight: "800",
+                      fontSize: "14px",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    {uyari.baslik}
+                  </div>
+
+                  <div
+                    style={{
+                      color: "#57606f",
+                      fontSize: "13px",
+                      lineHeight: "1.5",
+                    }}
+                  >
+                    {uyari.aciklama}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div style={{ padding: "28px 40px 40px 40px", flexGrow: 1 }}>
           <Outlet />
         </div>
       </main>
@@ -287,21 +512,98 @@ function Dashboardpage() {
   );
 }
 
-const statusCardStyle = {
-  backgroundColor: "#3d4451",
-  padding: "15px",
-  borderRadius: "12px",
-  display: "flex",
-  flexDirection: "column",
-  border: "1px solid rgba(255,255,255,0.05)",
+const topStatsGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "16px",
 };
 
-const cardLabelStyle = {
-  fontSize: "11px",
-  color: "#a4b0be",
+const topCardStyle = {
+  backgroundColor: "#ffffff",
+  padding: "18px",
+  borderRadius: "18px",
+  minHeight: "135px",
+  border: "1px solid rgba(0,0,0,0.06)",
+  boxShadow: "0 10px 28px rgba(0,0,0,0.06)",
+};
+
+const cardTopRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};
+
+const topCardLabelStyle = {
+  fontSize: "12px",
+  color: "#64748b",
+  fontWeight: "800",
+  letterSpacing: "0.3px",
+};
+
+const unitStyle = {
+  fontSize: "13px",
+  color: "#64748b",
+};
+
+const cardInfoStyle = {
+  margin: "4px 0",
+  color: "#64748b",
+  fontSize: "13px",
+};
+
+const progressTrackStyle = {
+  height: "6px",
+  width: "100%",
+  backgroundColor: "#e2e8f0",
+  marginTop: "10px",
+  borderRadius: "10px",
+  overflow: "hidden",
+};
+
+const progressFillStyle = {
+  height: "100%",
+  transition: "0.5s ease",
+};
+
+const liveMeasureGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "10px",
+  marginTop: "14px",
+};
+
+const liveMeasureItemStyle = {
+  backgroundColor: "#f8fafc",
+  border: "1px solid #e2e8f0",
+  borderRadius: "12px",
+  padding: "12px",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "5px",
+  minWidth: "0",
+  color: "#0f172a",
+  textAlign: "center",
+};
+
+const liveMeasureTimeItemStyle = {
+  ...liveMeasureItemStyle,
+  gridColumn: "1 / -1",
+};
+
+const liveMeasureValueStyle = {
+  color: "#0f172a",
+  fontSize: "16px",
+  fontWeight: "800",
+  lineHeight: "1.2",
+  whiteSpace: "nowrap",
+};
+
+const liveMeasureLabelStyle = {
+  color: "#64748b",
+  fontSize: "12px",
   fontWeight: "600",
-  marginBottom: "8px",
-  textTransform: "uppercase",
 };
 
 const dotStyle = {
@@ -313,7 +615,7 @@ const dotStyle = {
 
 const navLinkStyle = (isActive) => ({
   width: "100%",
-  padding: "15px 25px",
+  padding: "13px 25px",
   backgroundColor: isActive ? "#54a0ff" : "transparent",
   color: isActive ? "#fff" : "#a4b0be",
   border: "none",

@@ -121,3 +121,55 @@ td {
     padding: 15px;
     font-size: 14px;
 }
+.hayvan-listesi {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 18px;
+}
+
+.table-responsive table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.table-responsive th,
+.table-responsive td {
+  color: #1f2937 !important;
+  white-space: nowrap;
+  padding: 14px 16px;
+}
+
+.table-responsive th {
+  color: #00bfa6 !important;
+  background: #eafff9;
+  font-weight: 800;
+}
+
+.table-responsive td {
+  background: #ffffff;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.edit-btn,
+.delete-btn {
+  white-space: nowrap;
+}
+.layout-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}

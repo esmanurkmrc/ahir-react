@@ -4,6 +4,7 @@ import "../CSS/hayvanlar.css";
 
 function HayvanlarPage() {
   const [hayvanlar, setHayvanlar] = useState([]);
+
   const [yeniHayvan, setYeniHayvan] = useState({
     kupeNo: "",
     irk: "",
@@ -15,17 +16,24 @@ function HayvanlarPage() {
     asiTakvimi: "",
   });
 
+  const [verimKaydi, setVerimKaydi] = useState({
+    tarih: "",
+    saat: "",
+    hayvanId: "",
+    yemTuketimi: "",
+    sutVerimi: "",
+  });
+
   const [tur, setTur] = useState("inek");
   const [editId, setEditId] = useState(null);
 
-  
   const hayvanlariGetir = async () => {
     try {
       const response = await axios.get("http://localhost:8080/api/hayvanlar");
       setHayvanlar(response.data);
     } catch (error) {
       console.error("Hayvanlar alınamadı", error);
-      alert("Veriler çekilirken bir hata oluştu. Lütfen bağlantınızı kontrol edin.");
+      alert("Veriler çekilirken bir hata oluştu.");
     }
   };
 
@@ -36,25 +44,76 @@ function HayvanlarPage() {
     });
   };
 
+  const handleVerimChange = (e) => {
+    setVerimKaydi({
+      ...verimKaydi,
+      [e.target.name]: e.target.value,
+    });
+  };
+
   const hayvanEkle = async () => {
     try {
       if (editId) {
-    
         await axios.put(`http://localhost:8080/api/hayvanlar/${editId}`, yeniHayvan);
         setEditId(null);
       } else {
-      
         await axios.post(`http://localhost:8080/api/hayvanlar/${tur}`, yeniHayvan);
       }
 
-      hayvanlariGetir(); 
+      hayvanlariGetir();
+
       setYeniHayvan({
-        kupeNo: "", irk: "", cinsiyet: "", dogumTarihi: "",
-        durum: "", sonAgirlik: "", gunlukSutVerimi: "", asiTakvimi: "",
+        kupeNo: "",
+        irk: "",
+        cinsiyet: "",
+        dogumTarihi: "",
+        durum: "",
+        sonAgirlik: "",
+        gunlukSutVerimi: "",
+        asiTakvimi: "",
       });
     } catch (error) {
       console.error("Hata oluştu", error);
       alert("İşlem sırasında bir hata oluştu.");
+    }
+  };
+
+  const verimKaydiEkle = async () => {
+    if (
+      !verimKaydi.tarih ||
+      !verimKaydi.saat ||
+      !verimKaydi.hayvanId ||
+      !verimKaydi.yemTuketimi ||
+      !verimKaydi.sutVerimi
+    ) {
+      alert("Lütfen süt/yem kaydı için tüm alanları doldurun.");
+      return;
+    }
+
+    try {
+      const sut = Number(verimKaydi.sutVerimi);
+
+      await axios.post("http://localhost:8080/api/analysis-productivity", {
+        tarih: verimKaydi.tarih,
+        saat: verimKaydi.saat,
+        hayvanId: Number(verimKaydi.hayvanId),
+        yemTuketimi: Number(verimKaydi.yemTuketimi),
+        sutVerimi: sut,
+        durum: sut < 3 ? "Düşük Verim" : sut < 4 ? "Orta Verim" : "Normal Verim",
+      });
+
+      alert("Süt ve yem verisi kaydedildi.");
+
+      setVerimKaydi({
+        tarih: "",
+        saat: "",
+        hayvanId: "",
+        yemTuketimi: "",
+        sutVerimi: "",
+      });
+    } catch (error) {
+      console.error("Verim kaydı eklenemedi", error);
+      alert("Süt/yem kaydı eklenirken hata oluştu.");
     }
   };
 
@@ -72,15 +131,20 @@ function HayvanlarPage() {
   const hayvanDuzenle = (hayvan) => {
     setYeniHayvan({ ...hayvan });
     setEditId(hayvan.id);
-    
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const iptalEt = () => {
     setEditId(null);
     setYeniHayvan({
-      kupeNo: "", irk: "", cinsiyet: "", dogumTarihi: "",
-      durum: "", sonAgirlik: "", gunlukSutVerimi: "", asiTakvimi: "",
+      kupeNo: "",
+      irk: "",
+      cinsiyet: "",
+      dogumTarihi: "",
+      durum: "",
+      sonAgirlik: "",
+      gunlukSutVerimi: "",
+      asiTakvimi: "",
     });
   };
 
@@ -89,14 +153,13 @@ function HayvanlarPage() {
       <h1>🐄 Hayvan Yönetimi</h1>
 
       <div className="layout-wrapper">
-      
         <div className="hayvan-ekle">
           <h2>{editId ? "✍️ Hayvanı Güncelle" : "➕ Yeni Hayvan Ekle"}</h2>
-          
+
           <div className="input-group">
             <input type="text" name="kupeNo" placeholder="Küpe No" value={yeniHayvan.kupeNo} onChange={handleChange} />
             <input type="text" name="irk" placeholder="Irk" value={yeniHayvan.irk} onChange={handleChange} />
-            
+
             <select name="cinsiyet" value={yeniHayvan.cinsiyet} onChange={handleChange}>
               <option value="">Cinsiyet Seçin</option>
               <option value="Disi">Dişi</option>
@@ -104,12 +167,11 @@ function HayvanlarPage() {
             </select>
 
             <input type="date" name="dogumTarihi" value={yeniHayvan.dogumTarihi} onChange={handleChange} />
-            <input type="text" name="durum" placeholder="Sağlık Durumu (Örn: Sağlıklı)" value={yeniHayvan.durum} onChange={handleChange} />
+            <input type="text" name="durum" placeholder="Sağlık Durumu" value={yeniHayvan.durum} onChange={handleChange} />
             <input type="number" name="sonAgirlik" placeholder="Son Ağırlık (kg)" value={yeniHayvan.sonAgirlik} onChange={handleChange} />
             <input type="number" name="gunlukSutVerimi" placeholder="Günlük Süt (L)" value={yeniHayvan.gunlukSutVerimi} onChange={handleChange} />
             <input type="text" name="asiTakvimi" placeholder="Aşı Takvimi" value={yeniHayvan.asiTakvimi} onChange={handleChange} />
 
-           
             {!editId && (
               <select value={tur} onChange={(e) => setTur(e.target.value)} className="tur-select">
                 <option value="inek">İnek</option>
@@ -122,7 +184,7 @@ function HayvanlarPage() {
           <button className="save-btn" onClick={hayvanEkle}>
             {editId ? "Değişiklikleri Kaydet" : "Hayvanı Sisteme Ekle"}
           </button>
-          
+
           {editId && (
             <button className="cancel-btn" onClick={iptalEt}>
               İptal
@@ -130,7 +192,22 @@ function HayvanlarPage() {
           )}
         </div>
 
-     
+        <div className="hayvan-ekle">
+          <h2>🥛 Manuel Süt/Yem Kaydı</h2>
+
+          <div className="input-group">
+            <input type="date" name="tarih" value={verimKaydi.tarih} onChange={handleVerimChange} />
+            <input type="time" name="saat" value={verimKaydi.saat} onChange={handleVerimChange} />
+            <input type="number" name="hayvanId" placeholder="Hayvan ID" value={verimKaydi.hayvanId} onChange={handleVerimChange} />
+            <input type="number" name="yemTuketimi" placeholder="Yem Tüketimi (kg)" value={verimKaydi.yemTuketimi} onChange={handleVerimChange} />
+            <input type="number" name="sutVerimi" placeholder="Süt Verimi (L)" value={verimKaydi.sutVerimi} onChange={handleVerimChange} />
+          </div>
+
+          <button className="save-btn" onClick={verimKaydiEkle}>
+            Süt/Yem Kaydını Ekle
+          </button>
+        </div>
+
         <div className="hayvan-listesi">
           <div className="liste-ust-bar">
             <h2>Kayıtlı Hayvanlar</h2>
@@ -153,6 +230,7 @@ function HayvanlarPage() {
                     <th>İşlem</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {hayvanlar.map((hayvan) => (
                     <tr key={hayvan.id}>
@@ -160,16 +238,16 @@ function HayvanlarPage() {
                       <td>{hayvan.irk}</td>
                       <td>{hayvan.cinsiyet === "Disi" ? "Dişi" : "Erkek"}</td>
                       <td>
-                        <span className={`status-badge ${hayvan.durum?.toLowerCase().includes('sağlıklı') ? 'healthy' : 'warning'}`}>
+                        <span className={`status-badge ${hayvan.durum?.toLowerCase().includes("sağlıklı") ? "healthy" : "warning"}`}>
                           {hayvan.durum}
                         </span>
                       </td>
                       <td>{hayvan.sonAgirlik} kg</td>
                       <td>{hayvan.gunlukSutVerimi} L</td>
-                     <td className="actions">
-  <button className="edit-btn" onClick={() => hayvanDuzenle(hayvan)}>Güncelle</button>
-  <button className="delete-btn" onClick={() => hayvanSil(hayvan.id)}>Sil</button>
-</td>
+                      <td className="actions">
+                        <button className="edit-btn" onClick={() => hayvanDuzenle(hayvan)}>Güncelle</button>
+                        <button className="delete-btn" onClick={() => hayvanSil(hayvan.id)}>Sil</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

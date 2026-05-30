@@ -844,3 +844,29 @@ tbody td {
     padding: 10px 8px;
   }
 }
+.stat-card.glass {
+  background: #ffffff !important;
+  color: #071426 !important;
+}
+
+.stat-card .value-row h2 {
+  color: #071426 !important;
+  font-size: 30px !important;
+  font-weight: 900 !important;
+  margin: 0 !important;
+  display: block !important;
+}
+
+.stat-card .value-row small {
+  color: #8ca0b3 !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+
+.stat-card label {
+  color: #8ca0b3 !important;
+}
+
+.stat-card .delta {
+  color: #00f5d4 !important;
+}
