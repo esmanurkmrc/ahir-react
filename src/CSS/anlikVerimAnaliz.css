@@ -485,3 +485,28 @@
     grid-template-columns: 1fr;
   }
 }
+.av-form-card {
+  overflow: hidden;
+}
+
+.av-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.av-form-grid label {
+  min-width: 0;
+}
+
+.av-form-grid input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.av-status-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.av-status-grid strong {
+  word-break: break-word;
+  line-height: 1.25;
+}

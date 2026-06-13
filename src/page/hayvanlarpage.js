@@ -26,14 +26,18 @@ function HayvanlarPage() {
 
   const [tur, setTur] = useState("inek");
   const [editId, setEditId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const hayvanlariGetir = async () => {
     try {
+      setLoading(true);
       const response = await axios.get("http://localhost:8080/api/hayvanlar");
       setHayvanlar(response.data);
     } catch (error) {
       console.error("Hayvanlar alınamadı", error);
       alert("Veriler çekilirken bir hata oluştu.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -149,14 +153,30 @@ function HayvanlarPage() {
   };
 
   return (
-    <div className="hayvan-container">
-      <h1>🐄 Hayvan Yönetimi</h1>
+    <div className="hayvan-page">
+      <div className="hayvan-hero">
+        <div>
+          <span className="hero-badge">🐄 Akıllı Çiftlik Yönetimi</span>
+          <h1>Hayvan Yönetimi</h1>
+          <p>
+            Hayvan kayıtlarını yönet, süt ve yem verilerini sisteme ekle,
+            üretim takibini tek ekrandan kontrol et.
+          </p>
+        </div>
 
-      <div className="layout-wrapper">
-        <div className="hayvan-ekle">
-          <h2>{editId ? "✍️ Hayvanı Güncelle" : "➕ Yeni Hayvan Ekle"}</h2>
+      </div>
 
-          <div className="input-group">
+      <div className="hayvan-grid">
+        <div className="form-card">
+          <div className="card-header">
+            <div>
+              <h2>{editId ? "Hayvan Bilgilerini Güncelle" : "Yeni Hayvan Ekle"}</h2>
+              <p>Kimlik, sağlık ve üretim bilgilerini gir.</p>
+            </div>
+            <span>{editId ? "Düzenleme" : "Yeni Kayıt"}</span>
+          </div>
+
+          <div className="input-grid">
             <input type="text" name="kupeNo" placeholder="Küpe No" value={yeniHayvan.kupeNo} onChange={handleChange} />
             <input type="text" name="irk" placeholder="Irk" value={yeniHayvan.irk} onChange={handleChange} />
 
@@ -173,7 +193,7 @@ function HayvanlarPage() {
             <input type="text" name="asiTakvimi" placeholder="Aşı Takvimi" value={yeniHayvan.asiTakvimi} onChange={handleChange} />
 
             {!editId && (
-              <select value={tur} onChange={(e) => setTur(e.target.value)} className="tur-select">
+              <select value={tur} onChange={(e) => setTur(e.target.value)}>
                 <option value="inek">İnek</option>
                 <option value="koyun">Koyun</option>
                 <option value="keci">Keçi</option>
@@ -181,21 +201,29 @@ function HayvanlarPage() {
             )}
           </div>
 
-          <button className="save-btn" onClick={hayvanEkle}>
-            {editId ? "Değişiklikleri Kaydet" : "Hayvanı Sisteme Ekle"}
-          </button>
-
-          {editId && (
-            <button className="cancel-btn" onClick={iptalEt}>
-              İptal
+          <div className="button-row">
+            <button className="primary-btn" onClick={hayvanEkle}>
+              {editId ? "Değişiklikleri Kaydet" : "Hayvanı Sisteme Ekle"}
             </button>
-          )}
+
+            {editId && (
+              <button className="secondary-btn" onClick={iptalEt}>
+                İptal
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="hayvan-ekle">
-          <h2>🥛 Manuel Süt/Yem Kaydı</h2>
+        <div className="form-card verim-card">
+          <div className="card-header">
+            <div>
+              <h2>Manuel Süt/Yem Kaydı</h2>
+              <p>Geçmiş analiz ve ML için üretim verisi ekle.</p>
+            </div>
+            <span>Verim</span>
+          </div>
 
-          <div className="input-group">
+          <div className="input-grid">
             <input type="date" name="tarih" value={verimKaydi.tarih} onChange={handleVerimChange} />
             <input type="time" name="saat" value={verimKaydi.saat} onChange={handleVerimChange} />
             <input type="number" name="hayvanId" placeholder="Hayvan ID" value={verimKaydi.hayvanId} onChange={handleVerimChange} />
@@ -203,62 +231,70 @@ function HayvanlarPage() {
             <input type="number" name="sutVerimi" placeholder="Süt Verimi (L)" value={verimKaydi.sutVerimi} onChange={handleVerimChange} />
           </div>
 
-          <button className="save-btn" onClick={verimKaydiEkle}>
+          <button className="primary-btn full-btn" onClick={verimKaydiEkle}>
             Süt/Yem Kaydını Ekle
           </button>
         </div>
+      </div>
 
-        <div className="hayvan-listesi">
-          <div className="liste-ust-bar">
+      <div className="list-card">
+        <div className="list-header">
+          <div>
             <h2>Kayıtlı Hayvanlar</h2>
-            <button className="listele-btn" onClick={hayvanlariGetir}>
-              🔍 Verileri Listele
-            </button>
+            <p>Sisteme eklenen hayvanların temel bilgileri.</p>
           </div>
 
-          {hayvanlar.length > 0 ? (
-            <div className="table-responsive">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Küpe No</th>
-                    <th>Irk</th>
-                    <th>Cinsiyet</th>
-                    <th>Durum</th>
-                    <th>Ağırlık</th>
-                    <th>Süt</th>
-                    <th>İşlem</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {hayvanlar.map((hayvan) => (
-                    <tr key={hayvan.id}>
-                      <td><strong>{hayvan.kupeNo}</strong></td>
-                      <td>{hayvan.irk}</td>
-                      <td>{hayvan.cinsiyet === "Disi" ? "Dişi" : "Erkek"}</td>
-                      <td>
-                        <span className={`status-badge ${hayvan.durum?.toLowerCase().includes("sağlıklı") ? "healthy" : "warning"}`}>
-                          {hayvan.durum}
-                        </span>
-                      </td>
-                      <td>{hayvan.sonAgirlik} kg</td>
-                      <td>{hayvan.gunlukSutVerimi} L</td>
-                      <td className="actions">
-                        <button className="edit-btn" onClick={() => hayvanDuzenle(hayvan)}>Güncelle</button>
-                        <button className="delete-btn" onClick={() => hayvanSil(hayvan.id)}>Sil</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <p>Tabloyu görüntülemek için yukarıdaki <strong>"Verileri Listele"</strong> butonuna tıklayın.</p>
-            </div>
-          )}
+          <button className="list-btn" onClick={hayvanlariGetir}>
+            {loading ? "Yükleniyor..." : "Verileri Listele"}
+          </button>
         </div>
+
+        {hayvanlar.length > 0 ? (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Küpe No</th>
+                  <th>Irk</th>
+                  <th>Cinsiyet</th>
+                  <th>Durum</th>
+                  <th>Ağırlık</th>
+                  <th>Süt</th>
+                  <th>İşlem</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {hayvanlar.map((hayvan) => (
+                  <tr key={hayvan.id}>
+                    <td>{hayvan.id}</td>
+                    <td><strong>{hayvan.kupeNo}</strong></td>
+                    <td>{hayvan.irk}</td>
+                    <td>{hayvan.cinsiyet === "Disi" ? "Dişi" : "Erkek"}</td>
+                    <td>
+                      <span className={`status-badge ${hayvan.durum?.toLowerCase().includes("sağlıklı") ? "healthy" : "warning"}`}>
+                        {hayvan.durum || "Belirsiz"}
+                      </span>
+                    </td>
+                    <td>{hayvan.sonAgirlik || "-"} kg</td>
+                    <td>{hayvan.gunlukSutVerimi || "-"} L</td>
+                    <td className="actions">
+                      <button className="edit-btn" onClick={() => hayvanDuzenle(hayvan)}>Güncelle</button>
+                      <button className="delete-btn" onClick={() => hayvanSil(hayvan.id)}>Sil</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div>📋</div>
+            <h3>Henüz tablo görüntülenmiyor</h3>
+            <p>Hayvan kayıtlarını görmek için “Verileri Listele” butonuna tıklayın.</p>
+          </div>
+        )}
       </div>
     </div>
   );

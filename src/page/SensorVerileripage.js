@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import {
   LineChart,
@@ -33,6 +33,17 @@ const SensorVerileripage = () => {
     fetchSensorData();
   }, [viewType]);
 
+  const calculateTHI = (sicaklik, nem) => {
+    const T = Number(sicaklik || 0);
+    const RH = Number(nem || 0);
+
+    return (
+      1.8 * T +
+      32 -
+      (0.55 - 0.0055 * RH) * (1.8 * T - 26)
+    );
+  };
+
   const fetchSensorData = async () => {
     try {
       const res = await axios.get(
@@ -44,6 +55,7 @@ const SensorVerileripage = () => {
         sicaklik: Number(item.sicaklik) || 0,
         nem: Number(item.nem) || 0,
         amonyak: Number(item.amonyak) || 0,
+        thi: Number(calculateTHI(item.sicaklik, item.nem).toFixed(2)),
       }));
 
       rawData.sort((a, b) => {
@@ -66,7 +78,10 @@ const SensorVerileripage = () => {
             chunk.reduce((sum, item) => sum + item.nem, 0) /
             chunk.length;
 
-          // Kritik değerler kaybolmasın diye maksimum alıyoruz
+          const avgTHI =
+            chunk.reduce((sum, item) => sum + item.thi, 0) /
+            chunk.length;
+
           const maxAmonyak = Math.max(
             ...chunk.map((item) => item.amonyak)
           );
@@ -76,6 +91,7 @@ const SensorVerileripage = () => {
             sicaklik: Number(avgSicaklik.toFixed(2)),
             nem: Number(avgNem.toFixed(2)),
             amonyak: Number(maxAmonyak.toFixed(2)),
+            thi: Number(avgTHI.toFixed(2)),
           });
         }
 
@@ -86,6 +102,43 @@ const SensorVerileripage = () => {
     } catch (err) {
       console.error("Veri çekilemedi", err);
     }
+  };
+
+  const stats = useMemo(() => {
+    if (!data.length) {
+      return {
+        avgTemp: 0,
+        avgHumidity: 0,
+        maxAmonyak: 0,
+        avgTHI: 0,
+      };
+    }
+
+    const avg = (key) =>
+      data.reduce((sum, item) => sum + Number(item[key] || 0), 0) / data.length;
+
+    return {
+      avgTemp: avg("sicaklik").toFixed(1),
+      avgHumidity: avg("nem").toFixed(1),
+      maxAmonyak: Math.max(...data.map((item) => item.amonyak || 0)).toFixed(1),
+      avgTHI: avg("thi").toFixed(1),
+    };
+  }, [data]);
+
+  const getSystemComment = () => {
+    if (Number(stats.avgTHI) >= 72 && Number(stats.maxAmonyak) >= 25) {
+      return "THI ve amonyak değerleri kritik sınıra yaklaşmaktadır. Bu durum hayvan refahı ve süt verimi açısından risk oluşturabilir.";
+    }
+
+    if (Number(stats.avgTHI) >= 72) {
+      return "Ortalama THI değeri ısı stresi risk bölgesindedir. Sıcaklık ve nem birlikte takip edilmelidir.";
+    }
+
+    if (Number(stats.maxAmonyak) >= 25) {
+      return "Amonyak değeri kritik seviyeye ulaşmıştır. Havalandırma koşullarının kontrol edilmesi önerilir.";
+    }
+
+    return "Veriler genel olarak kabul edilebilir aralıktadır. Mikroklima koşulları düzenli takip edilmelidir.";
   };
 
   const getGradientOffset = () => {
@@ -167,6 +220,18 @@ const SensorVerileripage = () => {
         </div>
       </header>
 
+      <div style={summaryGridStyle}>
+        <SummaryCard title="Ortalama Sıcaklık" value={`${stats.avgTemp} °C`} icon="🌡️" />
+        <SummaryCard title="Ortalama Nem" value={`%${stats.avgHumidity}`} icon="💧" />
+        <SummaryCard title="Maksimum Amonyak" value={`${stats.maxAmonyak} ppm`} icon="⚠️" />
+        <SummaryCard title="Ortalama THI" value={stats.avgTHI} icon="🐄" />
+      </div>
+
+      <div style={systemCommentStyle}>
+        <strong>🧠 Sistem Yorumu</strong>
+        <p>{getSystemComment()}</p>
+      </div>
+
       <div style={wideCardStyle}>
         <div
           style={{
@@ -196,25 +261,12 @@ const SensorVerileripage = () => {
                 x2="0"
                 y2="1"
               >
-                <stop
-                  offset={off}
-                  stopColor="#ef4444"
-                  stopOpacity={0.85}
-                />
-
-                <stop
-                  offset={off}
-                  stopColor="#3b82f6"
-                  stopOpacity={0.25}
-                />
+                <stop offset={off} stopColor="#ef4444" stopOpacity={0.85} />
+                <stop offset={off} stopColor="#3b82f6" stopOpacity={0.25} />
               </linearGradient>
             </defs>
 
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke="#f1f5f9"
-            />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
 
             <XAxis
               dataKey="tarih"
@@ -222,19 +274,11 @@ const SensorVerileripage = () => {
               hide={viewType === "daily"}
             />
 
-            <YAxis
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
-              domain={[0, "auto"]}
-            />
+            <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} domain={[0, "auto"]} />
 
             <Tooltip />
 
-            <ReferenceLine
-              y={25}
-              stroke="#ef4444"
-              strokeDasharray="5 5"
-              strokeWidth={2}
-            >
+            <ReferenceLine y={25} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2}>
               <Label
                 value="TEHLİKE SINIRI"
                 position="top"
@@ -279,42 +323,15 @@ const SensorVerileripage = () => {
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={data}>
                 <defs>
-                  <linearGradient
-                    id="tGrad"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="5%"
-                      stopColor="#f59e0b"
-                      stopOpacity={0.25}
-                    />
-
-                    <stop
-                      offset="95%"
-                      stopColor="#f59e0b"
-                      stopOpacity={0}
-                    />
+                  <linearGradient id="tGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                   </linearGradient>
                 </defs>
 
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#f1f5f9"
-                />
-
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="tarih" hide />
-
-                <YAxis
-                  unit="°C"
-                  tick={{ fontSize: 11 }}
-                  stroke="#cbd5e1"
-                  axisLine={false}
-                />
-
+                <YAxis unit="°C" tick={{ fontSize: 11 }} stroke="#cbd5e1" axisLine={false} />
                 <Tooltip />
 
                 <Area
@@ -337,21 +354,9 @@ const SensorVerileripage = () => {
 
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={data}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#f1f5f9"
-                />
-
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="tarih" hide />
-
-                <YAxis
-                  unit="%"
-                  tick={{ fontSize: 11 }}
-                  stroke="#cbd5e1"
-                  axisLine={false}
-                />
-
+                <YAxis unit="%" tick={{ fontSize: 11 }} stroke="#cbd5e1" axisLine={false} />
                 <Tooltip />
 
                 <Line
@@ -365,6 +370,41 @@ const SensorVerileripage = () => {
               </LineChart>
             </ResponsiveContainer>
           </div>
+
+          <div style={cardStyle}>
+            <h4 style={cardTitleStyle}>
+              <Activity color="#ef4444" size={20} />
+              THI Isı Stresi Takibi
+            </h4>
+
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="tarih" hide />
+                <YAxis domain={[50, 90]} tick={{ fontSize: 11 }} stroke="#cbd5e1" axisLine={false} />
+                <Tooltip />
+
+                <ReferenceLine y={72} stroke="#ef4444" strokeDasharray="5 5">
+                  <Label
+                    value="THI 72 Risk Eşiği"
+                    position="top"
+                    fill="#ef4444"
+                    fontSize={10}
+                    fontWeight="900"
+                  />
+                </ReferenceLine>
+
+                <Line
+                  type="monotone"
+                  dataKey="thi"
+                  stroke="#ef4444"
+                  strokeWidth={2.8}
+                  dot={false}
+                  name="THI"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         <div style={cardStyle}>
@@ -374,13 +414,8 @@ const SensorVerileripage = () => {
           </h4>
 
           <ResponsiveContainer width="100%" height={400}>
-            <ScatterChart
-              margin={{ top: 20, right: 30, bottom: 20, left: 0 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#f1f5f9"
-              />
+            <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
 
               <XAxis
                 type="number"
@@ -419,11 +454,7 @@ const SensorVerileripage = () => {
 
               <Tooltip cursor={{ strokeDasharray: "3 3" }} />
 
-              <Scatter
-                name="Anlık Durum"
-                data={data}
-                fill="#6366f1"
-              />
+              <Scatter name="Anlık Durum" data={data} fill="#6366f1" />
             </ScatterChart>
           </ResponsiveContainer>
 
@@ -458,6 +489,14 @@ const SensorVerileripage = () => {
   );
 };
 
+const SummaryCard = ({ title, value, icon }) => (
+  <div style={summaryCardStyle}>
+    <span style={summaryIconStyle}>{icon}</span>
+    <span style={summaryTitleStyle}>{title}</span>
+    <strong style={summaryValueStyle}>{value}</strong>
+  </div>
+);
+
 const headerWrapperStyle = {
   display: "flex",
   justifyContent: "space-between",
@@ -484,6 +523,52 @@ const toggleBtnStyle = {
   fontWeight: "700",
   fontSize: "13px",
   transition: "0.3s",
+};
+
+const summaryGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: "18px",
+  marginBottom: "25px",
+};
+
+const summaryCardStyle = {
+  background: "#fff",
+  padding: "20px",
+  borderRadius: "20px",
+  boxShadow: "0 8px 28px rgba(0,0,0,0.04)",
+  border: "1px solid #f1f5f9",
+};
+
+const summaryIconStyle = {
+  fontSize: "24px",
+  display: "block",
+  marginBottom: "8px",
+};
+
+const summaryTitleStyle = {
+  display: "block",
+  fontSize: "12px",
+  color: "#64748b",
+  fontWeight: "800",
+  textTransform: "uppercase",
+  marginBottom: "6px",
+};
+
+const summaryValueStyle = {
+  fontSize: "24px",
+  color: "#1e293b",
+  fontWeight: "900",
+};
+
+const systemCommentStyle = {
+  background: "#eff6ff",
+  border: "1px solid #bfdbfe",
+  borderLeft: "6px solid #3b82f6",
+  color: "#1e3a8a",
+  padding: "18px 22px",
+  borderRadius: "18px",
+  marginBottom: "30px",
 };
 
 const wideCardStyle = {

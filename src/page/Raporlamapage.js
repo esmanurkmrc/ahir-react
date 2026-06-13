@@ -515,8 +515,8 @@ const Raporlamapage = () => {
 
 const ReportStat = ({ title, value }) => (
   <div style={statCardStyle}>
-    <span>{title}</span>
-    <strong>{value}</strong>
+    <span style={statTitleStyle}>{title}</span>
+    <strong style={statValueStyle}>{value}</strong>
   </div>
 );
 
@@ -687,5 +687,15 @@ const infoStyle = {
   color: "#2a4365",
   fontWeight: "600",
 };
+const statTitleStyle = {
+  color: "#64748b",
+  fontSize: "13px",
+  fontWeight: "800",
+};
 
+const statValueStyle = {
+  color: "#0f172a",
+  fontSize: "24px",
+  fontWeight: "900",
+};
 export default Raporlamapage;

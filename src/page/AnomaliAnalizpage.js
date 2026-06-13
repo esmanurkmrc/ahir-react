@@ -175,9 +175,9 @@ const AnomaliAnalizpage = () => {
       setEngineStatus("Taranıyor");
 
       const [prodRes, envRes] = await Promise.all([
-        axios.get(`${API_BASE}/productivity`),
-        axios.get(`${API_BASE}/environment`),
-      ]);
+  axios.get(`${API_BASE}/analysis-productivity`),
+  axios.get(`${API_BASE}/analysis-environment`),
+]);
 
       const foundAnomalies = [];
 

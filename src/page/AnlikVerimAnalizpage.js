@@ -140,6 +140,10 @@ function AnlikVerimAnalizpage() {
       sutVerimi: Number(form.sutVerimi),
       yemTuketimi: Number(form.yemTuketimi),
       tarih: form.tarih,
+      sicaklik: Number(sensor?.sicaklik || 0),
+      nem: Number(sensor?.nem || 0),
+      amonyak: Number(sensor?.amonyak || 0),
+      isik: Number(sensor?.isik || 0),
     };
 
     try {
@@ -150,7 +154,7 @@ function AnlikVerimAnalizpage() {
       });
 
       if (res.ok) {
-        setMesaj("Süt verimi kaydedildi.");
+        setMesaj("Süt verimi ve anlık sensör değerleri kaydedildi.");
         setForm({
           kupeNo: "",
           sutVerimi: "",
@@ -331,9 +335,56 @@ function AnlikVerimAnalizpage() {
       .join(" ");
   };
 
+  const getModelYorumu = () => {
+    const r2 = Number(modelStatus?.r2_skoru);
+
+    if (!modelStatus || modelStatus?.r2_skoru === null || modelStatus?.r2_skoru === undefined) {
+      return "Model performansı için yeterli eşleşmiş kayıt beklenmektedir. Sensör değerleriyle birlikte kaydedilen süt verileri arttıkça model daha sağlıklı değerlendirilecektir.";
+    }
+
+    if (r2 >= 0.7) {
+      return "Model geçmiş verilerde güçlü bir açıklama başarısı göstermektedir. Tahmin sonuçları karar destek amacıyla kullanılabilir.";
+    }
+
+    if (r2 >= 0.3) {
+      return "Model bazı ilişkileri öğrenmiştir ancak daha fazla ve daha çeşitli veriyle geliştirilebilir.";
+    }
+
+    if (r2 >= 0) {
+      return "Model henüz düşük başarı göstermektedir. Veri sayısı ve veri çeşitliliği arttıkça performansın yükselmesi beklenmektedir.";
+    }
+
+    return "R² değerinin negatif olması, mevcut veri sayısının ve çeşitliliğin model için yeterli olmadığını gösterir. Aynı sensör değerlerinde farklı süt sonuçları bulunduğunda model kararsız tahmin üretebilir.";
+  };
+
+  const getFeatureImportance = () => {
+    const importance = modelStatus?.feature_importance;
+
+    return {
+      sicaklik: Number(importance?.sicaklik || 0),
+      nem: Number(importance?.nem || 0),
+      amonyak: Number(importance?.amonyak || 0),
+      yem_tuketimi: Number(importance?.yem_tuketimi || 0),
+    };
+  };
+
+  const featureImportance = getFeatureImportance();
   const verimYorumu = getVerimYorumu();
   const saglikYorumu = getSaglikYorumu();
   const grafikNoktalari = getGrafikNoktalari();
+  const modelYorumu = getModelYorumu();
+
+  const r2Degeri =
+    modelStatus?.r2_skoru !== null && modelStatus?.r2_skoru !== undefined
+      ? modelStatus.r2_skoru
+      : "-";
+
+  const featureItems = [
+    { label: "Sıcaklık", value: featureImportance.sicaklik },
+    { label: "Nem", value: featureImportance.nem },
+    { label: "Amonyak", value: featureImportance.amonyak },
+    { label: "Yem Tüketimi", value: featureImportance.yem_tuketimi },
+  ];
 
   return (
     <div className="anlik-verim-page">
@@ -405,7 +456,7 @@ function AnlikVerimAnalizpage() {
             </label>
           </div>
 
-          <button type="submit" disabled={kayitLoading}>
+          <button type="submit" disabled={kayitLoading || !sensor}>
             {kayitLoading ? "Kaydediliyor..." : "Kaydet"}
           </button>
 
@@ -433,12 +484,17 @@ function AnlikVerimAnalizpage() {
 
             <div>
               <span>R²</span>
-              <strong>{modelStatus?.r2_skoru !== null && modelStatus?.r2_skoru !== undefined ? modelStatus.r2_skoru : "-"}</strong>
+              <strong>{r2Degeri}</strong>
             </div>
 
             <div>
               <span>Güncelleme</span>
               <strong>{sonGuncelleme}</strong>
+            </div>
+
+            <div>
+              <span>Son Eğitim</span>
+              <strong>{modelStatus?.son_egitim || "-"}</strong>
             </div>
           </div>
 
@@ -498,6 +554,58 @@ function AnlikVerimAnalizpage() {
         </div>
       </div>
 
+      <div className="av-extra-grid">
+        <div className="av-health-card">
+          <div className="av-card-head">
+            <div>
+              <h2>Feature Importance</h2>
+              <p>Modelin tahmin yaparken hangi değişkenlere daha fazla önem verdiği.</p>
+            </div>
+          </div>
+
+          <div className="av-health-content">
+            {featureItems.map((item, index) => (
+              <div key={index} style={{ marginBottom: "18px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <strong style={{ color: "#1e293b" }}>{item.label}</strong>
+                  <strong style={{ color: "#0f172a" }}>%{Number(item.value || 0).toFixed(1)}</strong>
+                </div>
+
+                <div style={{ height: "12px", background: "#e2e8f0", borderRadius: "999px", overflow: "hidden" }}>
+                  <div
+                    style={{
+                      width: `${Math.min(Number(item.value || 0), 100)}%`,
+                      height: "100%",
+                      background: "linear-gradient(135deg, #54a0ff, #2ed573)",
+                      borderRadius: "999px",
+                    }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="av-health-card">
+          <div className="av-card-head">
+            <div>
+              <h2>Model Değerlendirmesi</h2>
+              <p>R² ve veri yapısına göre sistem yorumu.</p>
+            </div>
+          </div>
+
+          <div className="av-health-content">
+            <p>{modelYorumu}</p>
+
+            <div className="av-health-actions">
+              <span>Veri sayısı artırılmalı</span>
+              <span>Sensör değerleri çeşitlendirilmeli</span>
+              <span>Süt kayıtları düzenli girilmeli</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {listeAcik && (
         <div className="av-table-card">
           <div className="av-card-head">
@@ -515,6 +623,9 @@ function AnlikVerimAnalizpage() {
                   <th>Küpe No</th>
                   <th>Süt</th>
                   <th>Yem</th>
+                  <th>Sıcaklık</th>
+                  <th>Nem</th>
+                  <th>Amonyak</th>
                   <th>Tarih</th>
                 </tr>
               </thead>
@@ -522,7 +633,7 @@ function AnlikVerimAnalizpage() {
               <tbody>
                 {kayitlar.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="empty-row">
+                    <td colSpan="8" className="empty-row">
                       Henüz kayıt bulunamadı.
                     </td>
                   </tr>
@@ -533,6 +644,9 @@ function AnlikVerimAnalizpage() {
                       <td>{item.kupeNo}</td>
                       <td>{Number(item.sutVerimi || 0).toFixed(1)} L</td>
                       <td>{Number(item.yemTuketimi || 0).toFixed(1)} kg</td>
+                      <td>{Number(item.sicaklik || 0).toFixed(1)}°C</td>
+                      <td>%{Number(item.nem || 0).toFixed(1)}</td>
+                      <td>{Number(item.amonyak || 0).toFixed(1)} ppm</td>
                       <td>{item.tarih}</td>
                     </tr>
                   ))

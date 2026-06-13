@@ -870,3 +870,63 @@ tbody td {
 .stat-card .delta {
   color: #00f5d4 !important;
 }
+
+.bottom-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.small-confidence {
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.danger-text {
+  color: #ff4d4f !important;
+}
+
+@media (max-width: 1200px) {
+  .status-ribbon {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mini-charts-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .visual-row {
+    grid-template-columns: 1fr;
+  }
+
+  .action-column,
+  .card-column {
+    width: 100%;
+  }
+}
+.industrial-dashboard {
+  width: 100%;
+}
+
+.dashboard-grid {
+  width: 100%;
+}
+
+.main-display {
+  width: 100%;
+  min-width: 0;
+}
+
+.mini-charts-grid {
+  width: 100%;
+}
+
+.bottom-charts-grid {
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}

@@ -1,175 +1,344 @@
-/* Ana Konteynır: Daha Açık ve Soft Lila Arka Plan */
-.hayvan-container {
-    padding: 25px 40px;
-    background: linear-gradient(135deg, #fdfaff 0%, #f3e5f5 100%); /* Çok daha açık lila */
-    min-height: 100vh;
-    font-family: 'Inter', sans-serif;
-    box-sizing: border-box;
+.hayvan-page {
+  min-height: 100vh;
+  padding: 30px;
+  background: linear-gradient(135deg, #f8fafc, #eefdf3);
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  color: #0f172a;
 }
 
-/* Sayfa Başlığı */
-.hayvan-container h1 {
-    color: #4a148c;
-    font-size: 24px;
-    margin-bottom: 25px;
-    font-weight: 800;
+.hayvan-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: stretch;
+  padding: 28px;
+  margin-bottom: 24px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #ffffff, #ecfdf5);
+  border: 1px solid #d1fae5;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
 }
 
-/* Layout Yapısı */
-.layout-wrapper {
-    display: grid;
-    grid-template-columns: 360px 1fr;
-    gap: 30px;
-    align-items: flex-start;
+.hero-badge {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 12px;
 }
 
-/* Kartlar */
-.hayvan-ekle, .hayvan-listesi {
-    background: #ffffff;
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 8px 25px rgba(106, 27, 154, 0.05); /* Daha hafif gölge */
-    border: 1px solid #f3e5f5;
+.hayvan-hero h1 {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 900;
+  color: #0f172a;
 }
 
-/* Form Elemanları */
-.input-group input, .input-group select {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1.5px solid #f3e5f5;
-    border-radius: 12px;
-    background: #fafafa;
-    transition: 0.3s;
+.hayvan-hero p {
+  margin: 10px 0 0;
+  max-width: 680px;
+  color: #64748b;
+  line-height: 1.6;
+  font-size: 15px;
 }
 
-.input-group input:focus {
-    border-color: #ba68c8;
-    background: #fff;
-    outline: none;
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 14px;
+  min-width: 280px;
 }
 
-/* Butonlar */
-.save-btn {
-    width: 100%;
-    padding: 14px;
-    background: #7b1fa2;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: 700;
-    cursor: pointer;
+.hero-stats div {
+  background: #ffffff;
+  border: 1px solid #d1fae5;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
 }
 
-.listele-btn {
-    background: #6a1b9a;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
+.hero-stats span {
+  display: block;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
 }
 
-/* TABLO BUTONLARI (Emoji Yerine Yazı) */
-.actions {
-    display: flex;
-    gap: 10px;
+.hero-stats strong {
+  color: #16a34a;
+  font-size: 28px;
+  font-weight: 900;
 }
 
-.edit-btn, .delete-btn {
-    padding: 6px 15px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    transition: 0.3s;
+.hayvan-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 22px;
+  margin-bottom: 24px;
 }
 
-.edit-btn {
-    background-color: #f3e5f5;
-    color: #7b1fa2; /* Mor yazı */
+.form-card,
+.list-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.08);
 }
 
-.edit-btn:hover {
-    background-color: #e1bee7;
+.verim-card {
+  background: linear-gradient(135deg, #ffffff, #eff6ff);
+  border-color: #bfdbfe;
 }
 
+.card-header,
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.card-header h2,
+.list-header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.card-header p,
+.list-header p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.card-header span {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.input-grid input,
+.input-grid select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 14px;
+  border-radius: 14px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  outline: none;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+.input-grid input:focus,
+.input-grid select:focus {
+  border-color: #22c55e;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.primary-btn,
+.secondary-btn,
+.list-btn,
+.edit-btn,
 .delete-btn {
-    background-color: #ffebee;
-    color: #c62828; /* Kırmızı yazı */
+  border: none;
+  cursor: pointer;
+  font-weight: 800;
+  border-radius: 14px;
+  transition: 0.2s ease;
 }
 
-.delete-btn:hover {
-    background-color: #ffcdd2;
+.primary-btn {
+  padding: 13px 18px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(34, 197, 94, 0.28);
 }
 
-/* Tablo Stili */
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(34, 197, 94, 0.34);
+}
+
+.secondary-btn {
+  padding: 13px 18px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.full-btn {
+  width: 100%;
+  margin-top: 18px;
+}
+
+.list-btn {
+  padding: 12px 18px;
+  background: #0f172a;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.list-btn:hover {
+  background: #1e293b;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+}
+
 table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0 10px;
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+  background: #ffffff;
 }
 
-tbody tr {
-    background: #ffffff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+thead {
+  background: #f8fafc;
+}
+
+th {
+  padding: 15px;
+  text-align: left;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 900;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 td {
-    padding: 15px;
-    font-size: 14px;
-}
-.hayvan-listesi {
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
+  padding: 15px;
+  color: #334155;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.table-responsive {
-  width: 100%;
-  overflow-x: auto;
-  border-radius: 18px;
+tbody tr:hover {
+  background: #f8fafc;
 }
 
-.table-responsive table {
-  width: 100%;
-  min-width: 720px;
-  border-collapse: collapse;
-  table-layout: auto;
-}
-
-.table-responsive th,
-.table-responsive td {
-  color: #1f2937 !important;
-  white-space: nowrap;
-  padding: 14px 16px;
-}
-
-.table-responsive th {
-  color: #00bfa6 !important;
-  background: #eafff9;
+.status-badge {
+  display: inline-block;
+  padding: 7px 11px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 800;
 }
 
-.table-responsive td {
-  background: #ffffff;
-  font-weight: 600;
+.status-badge.healthy {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge.warning {
+  background: #fef3c7;
+  color: #b45309;
 }
 
 .actions {
   display: flex;
-  gap: 10px;
-  align-items: center;
+  gap: 8px;
 }
 
 .edit-btn,
 .delete-btn {
-  white-space: nowrap;
+  padding: 8px 12px;
+  font-size: 12px;
 }
-.layout-wrapper {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
+
+.edit-btn {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.delete-btn {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 50px 20px;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 20px;
+  border: 1px dashed #cbd5e1;
+}
+
+.empty-state div {
+  font-size: 42px;
+  margin-bottom: 10px;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px;
+  color: #334155;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .hayvan-hero,
+  .hayvan-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hayvan-hero {
+    flex-direction: column;
+  }
+
+  .hero-stats {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  .hayvan-page {
+    padding: 18px;
+  }
+
+  .input-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .card-header,
+  .list-header {
+    flex-direction: column;
+  }
 }

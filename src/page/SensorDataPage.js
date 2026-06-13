@@ -13,7 +13,6 @@ import {
 } from "recharts";
 import "../CSS/sensordata.css";
 
-// Renk standardı
 const COLORS = {
   temp: "#ff4d4f",
   humidity: "#4da6ff",
@@ -23,11 +22,12 @@ const COLORS = {
   border: "rgba(0,255,195,0.08)"
 };
 
-// --- KONFOR GÖSTERGESİ (THI) ---
+const API_BASE = "http://localhost:8080";
+const ML_BASE = "http://localhost:8000";
+
 const ComfortGauge = ({ thiValue }) => {
   const min = 50;
   const max = 90;
-
   const normalizedValue = Math.max(min, Math.min(max, thiValue));
   const percentage = (normalizedValue - min) / (max - min);
 
@@ -65,12 +65,8 @@ const ComfortGauge = ({ thiValue }) => {
   };
 
   const getStatusInfo = (value) => {
-    if (value < 72) {
-      return { text: "STABİL REFAH", color: COLORS.ammonia };
-    }
-    if (value < 78) {
-      return { text: "DİKKAT GEREKİYOR", color: COLORS.light };
-    }
+    if (value < 72) return { text: "STABİL REFAH", color: COLORS.ammonia };
+    if (value < 78) return { text: "DİKKAT GEREKİYOR", color: COLORS.light };
     return { text: "KRİTİK STRES", color: COLORS.temp };
   };
 
@@ -83,12 +79,7 @@ const ComfortGauge = ({ thiValue }) => {
       <div className="comfort-title">KONFOR ENDEKSİ (THI)</div>
 
       <div className="comfort-gauge-svg-wrapper">
-        <svg
-          width="100%"
-          height="230"
-          viewBox="0 0 240 170"
-          className="comfort-gauge-svg"
-        >
+        <svg width="100%" height="230" viewBox="0 0 240 170" className="comfort-gauge-svg">
           <defs>
             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor={COLORS.ammonia} />
@@ -122,23 +113,11 @@ const ComfortGauge = ({ thiValue }) => {
             filter="url(#neonGlow)"
           />
 
-          <text
-            x="120"
-            y="118"
-            textAnchor="middle"
-            className="gauge-value-text"
-            fill={status.color}
-          >
+          <text x="120" y="118" textAnchor="middle" className="gauge-value-text" fill={status.color}>
             {thiValue.toFixed(1)}
           </text>
 
-          <text
-            x="120"
-            y="140"
-            textAnchor="middle"
-            className="gauge-status-text"
-            fill={status.color}
-          >
+          <text x="120" y="140" textAnchor="middle" className="gauge-status-text" fill={status.color}>
             {status.text}
           </text>
         </svg>
@@ -155,7 +134,6 @@ const ComfortGauge = ({ thiValue }) => {
   );
 };
 
-// --- KÜÇÜK GRAFİK KARTI ---
 const MiniChartCard = ({ title, children, footer }) => {
   return (
     <div className="mini-chart-card glass">
@@ -181,6 +159,11 @@ function SensorDataPage() {
   const [baglantiDurumu, setBaglantiDurumu] = useState("AKTİF");
   const [uyariMesaji, setUyariMesaji] = useState("");
 
+  const [mlResult, setMlResult] = useState(null);
+  const [modelStatus, setModelStatus] = useState(null);
+  const [mlLoading, setMlLoading] = useState(false);
+  const [mlError, setMlError] = useState("");
+
   const addLog = (msg) => {
     setLogs((prev) => [
       `${new Date().toLocaleTimeString()} - ${msg}`,
@@ -195,9 +178,56 @@ function SensorDataPage() {
     );
   };
 
+  const fetchMLPrediction = async (sensor) => {
+    if (!sensor) return;
+
+    try {
+      setMlLoading(true);
+      setMlError("");
+
+      const payload = {
+        sicaklik: Number(sensor.sicaklik || 0),
+        nem: Number(sensor.nem || 0),
+        amonyak: Number(sensor.amonyak || 0),
+        isik: Number(sensor.isik || 0),
+        yem_tuketimi: 6
+      };
+
+      const [predictRes, statusRes] = await Promise.all([
+        fetch(`${ML_BASE}/predict`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }),
+        fetch(`${ML_BASE}/model-status`)
+      ]);
+
+      if (!predictRes.ok) {
+        throw new Error("Tahmin servisi yanıt vermedi.");
+      }
+
+      const predictData = await predictRes.json();
+      const statusData = statusRes.ok ? await statusRes.json() : null;
+
+      setMlResult({
+        ...predictData,
+        input: payload
+      });
+
+      setModelStatus(statusData);
+      addLog("ML tahmini güncellendi.");
+    } catch (error) {
+      console.error("ML tahmin hatası:", error);
+      setMlError("ML servisine bağlanılamadı.");
+      addLog("ML tahmin hatası oluştu.");
+    } finally {
+      setMlLoading(false);
+    }
+  };
+
   const verileriGetir = async () => {
     try {
-      const response = await fetch("http://localhost:8080/api/sensor-data");
+      const response = await fetch(`${API_BASE}/api/sensor-data`);
 
       if (!response.ok) {
         setBaglantiDurumu("PASİF");
@@ -232,6 +262,7 @@ function SensorDataPage() {
 
         if (!eskiSon || eskiSon.id !== yeniSon.id) {
           addLog(`Yeni veri alındı (ID: #${yeniSon.id})`);
+          fetchMLPrediction(yeniSon);
         } else {
           addLog("Veriler yenilendi.");
         }
@@ -270,6 +301,13 @@ function SensorDataPage() {
 
   const son20Veri = useMemo(() => tumVeriler.slice(-20), [tumVeriler]);
   const son10Veri = useMemo(() => tumVeriler.slice(-10), [tumVeriler]);
+
+  const tumThiVerileri = useMemo(() => {
+    return tumVeriler.map((v) => ({
+      ...v,
+      thi: Number(thiHesapla(Number(v.sicaklik), Number(v.nem)).toFixed(1))
+    }));
+  }, [tumVeriler]);
 
   const analiz = useMemo(() => {
     if (tumVeriler.length < 1 || son20Veri.length < 1) return null;
@@ -326,15 +364,24 @@ function SensorDataPage() {
     return { t: "STABİL", c: COLORS.ammonia };
   };
 
+  const getMlText = () => {
+    if (mlError) return `⚠️ ${mlError}`;
+    if (mlLoading) return "⏳ ML modeli son sensör verisini analiz ediyor...";
+    if (!mlResult) return "ML tahmini için sensör verisi bekleniyor.";
+
+    if (mlResult.durum === "Düşük Verim Riski") {
+      return "⚠️ ML UYARISI: Son sensör verilerine göre düşük verim riski oluşabilir.";
+    }
+
+    return "✅ ML DURUMU: Son sensör verilerine göre süt verimi normal aralıkta tahmin edilmektedir.";
+  };
+
   const csvIndir = () => {
     if (tumVeriler.length === 0) return;
 
     const header = "ID,Sicaklik,Nem,Amonyak,Isik,Zaman\n";
     const csvContent = tumVeriler
-      .map(
-        (v) =>
-          `${v.id},${v.sicaklik},${v.nem},${v.amonyak},${v.isik},${v.zaman}`
-      )
+      .map((v) => `${v.id},${v.sicaklik},${v.nem},${v.amonyak},${v.isik},${v.zaman}`)
       .join("\n");
 
     const blob = new Blob([header + csvContent], {
@@ -363,10 +410,7 @@ function SensorDataPage() {
 
         <div className="ribbon-item">
           <div className="refresh-bar-wrapper">
-            <div
-              className="refresh-bar"
-              style={{ width: `${progress}%` }}
-            ></div>
+            <div className="refresh-bar" style={{ width: `${progress}%` }}></div>
             <small>VERİ SENKRONİZASYONU</small>
           </div>
         </div>
@@ -379,16 +423,10 @@ function SensorDataPage() {
           </span>
         </div>
 
-        <div className="ribbon-item clock">
-          {simdikiSaat.toLocaleTimeString()}
-        </div>
+        <div className="ribbon-item clock">{simdikiSaat.toLocaleTimeString()}</div>
       </div>
 
-      {uyariMesaji && (
-        <div className="warning-banner">
-          ⚠️ {uyariMesaji}
-        </div>
-      )}
+      {uyariMesaji && <div className="warning-banner">⚠️ {uyariMesaji}</div>}
 
       <div className="dashboard-grid">
         <div className="card-column">
@@ -400,10 +438,7 @@ function SensorDataPage() {
                 {(analiz?.deltaSic ?? 0) >= 0 ? "▲" : "▼"}
               </span>
             </div>
-            <span
-              className="badge"
-              style={{ background: getStatus(sonVeri?.sicaklik, "temp").c }}
-            >
+            <span className="badge" style={{ background: getStatus(sonVeri?.sicaklik, "temp").c }}>
               {getStatus(sonVeri?.sicaklik, "temp").t}
             </span>
           </div>
@@ -411,15 +446,9 @@ function SensorDataPage() {
           <div className="stat-card glass metric-ammonia">
             <label>AMONYAK</label>
             <div className="value-row">
-              <h2>
-                {sonVeri ? Number(sonVeri.amonyak).toFixed(1) : "--"}{" "}
-                <small>ppm</small>
-              </h2>
+              <h2>{sonVeri ? Number(sonVeri.amonyak).toFixed(1) : "--"} <small>ppm</small></h2>
             </div>
-            <span
-              className="badge"
-              style={{ background: getStatus(sonVeri?.amonyak, "amo").c }}
-            >
+            <span className="badge" style={{ background: getStatus(sonVeri?.amonyak, "amo").c }}>
               {getStatus(sonVeri?.amonyak, "amo").t}
             </span>
           </div>
@@ -427,15 +456,9 @@ function SensorDataPage() {
           <div className="stat-card glass metric-light">
             <label>IŞIK ŞİDDETİ</label>
             <div className="value-row">
-              <h2>
-                {sonVeri?.isik != null ? Number(sonVeri.isik).toFixed(0) : "--"}{" "}
-                <small>lux</small>
-              </h2>
+              <h2>{sonVeri?.isik != null ? Number(sonVeri.isik).toFixed(0) : "--"} <small>lux</small></h2>
             </div>
-            <span
-              className="badge"
-              style={{ background: getStatus(sonVeri?.isik, "isik").c }}
-            >
+            <span className="badge" style={{ background: getStatus(sonVeri?.isik, "isik").c }}>
               {getStatus(sonVeri?.isik, "isik").t}
             </span>
           </div>
@@ -443,11 +466,7 @@ function SensorDataPage() {
           <div className="log-panel glass">
             <header>BİLGİ AKIŞI</header>
             {logs.length > 0 ? (
-              logs.map((log, i) => (
-                <div key={i} className="log-line">
-                  {log}
-                </div>
-              ))
+              logs.map((log, i) => <div key={i} className="log-line">{log}</div>)
             ) : (
               <div className="log-line">Henüz log yok.</div>
             )}
@@ -457,9 +476,7 @@ function SensorDataPage() {
         <div className="main-display glass">
           <div className="display-header">
             <div>
-              <h3>
-                TREND ANALİZİ <small>(SON 20 KAYIT)</small>
-              </h3>
+              <h3>TREND ANALİZİ <small>(SON 20 KAYIT)</small></h3>
               <div className="last-update-text">
                 Son güncellenme: {sonGuncelleme ? sonGuncelleme.toLocaleTimeString() : "--"}
               </div>
@@ -471,18 +488,10 @@ function SensorDataPage() {
             <ComfortGauge thiValue={thi} />
 
             <div className="mini-stats">
-              <div className="m-item temp-item">
-                <strong>SICAKLIK ORT:</strong> {analiz?.avgSic ?? "0.0"} °C
-              </div>
-              <div className="m-item humidity-item">
-                <strong>NEM ORT:</strong> {analiz?.avgNem ?? "0.0"} %
-              </div>
-              <div className="m-item light-item">
-                <strong>IŞIK ORT:</strong> {analiz?.avgIsik ?? "0.0"} lx
-              </div>
-              <div className="m-item neutral-item">
-                <strong>TOPLAM VERİ:</strong> {tumVeriler.length}
-              </div>
+              <div className="m-item temp-item"><strong>SICAKLIK ORT:</strong> {analiz?.avgSic ?? "0.0"} °C</div>
+              <div className="m-item humidity-item"><strong>NEM ORT:</strong> {analiz?.avgNem ?? "0.0"} %</div>
+              <div className="m-item light-item"><strong>IŞIK ORT:</strong> {analiz?.avgIsik ?? "0.0"} lx</div>
+              <div className="m-item neutral-item"><strong>TOPLAM VERİ:</strong> {tumVeriler.length}</div>
             </div>
           </div>
 
@@ -505,127 +514,37 @@ function SensorDataPage() {
                   </linearGradient>
                 </defs>
 
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.05)"
-                  vertical={false}
-                />
-
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="id" stroke="#aaa" fontSize={10} />
                 <YAxis yAxisId="left" stroke={COLORS.temp} fontSize={10} />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  stroke={COLORS.light}
-                  fontSize={10}
-                />
+                <YAxis yAxisId="right" orientation="right" stroke={COLORS.light} fontSize={10} />
 
-                <Tooltip
-                  contentStyle={{
-                    background: "#0b1220",
-                    border: `1px solid ${COLORS.border}`,
-                    color: "#fff",
-                    borderRadius: "10px"
-                  }}
-                />
+                <Tooltip contentStyle={{ background: "#0b1220", border: `1px solid ${COLORS.border}`, color: "#fff", borderRadius: "10px" }} />
 
-                <ReferenceLine
-                  y={26}
-                  yAxisId="left"
-                  stroke={COLORS.temp}
-                  strokeDasharray="5 5"
-                  strokeOpacity={0.5}
-                />
+                <ReferenceLine y={26} yAxisId="left" stroke={COLORS.temp} strokeDasharray="5 5" strokeOpacity={0.5} />
 
-                <Area
-                  isAnimationActive={true}
-                  animationDuration={900}
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="sicaklik"
-                  name="Sıcaklık"
-                  stroke={COLORS.temp}
-                  fill="url(#colorSic)"
-                  strokeWidth={3}
-                />
-
-                <Area
-                  isAnimationActive={true}
-                  animationDuration={900}
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="amonyak"
-                  name="Amonyak"
-                  stroke={COLORS.ammonia}
-                  fillOpacity={0}
-                  strokeWidth={2.5}
-                />
-
-                <Area
-                  isAnimationActive={true}
-                  animationDuration={900}
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="isik"
-                  name="Işık"
-                  stroke={COLORS.light}
-                  fill="url(#colorIsik)"
-                  strokeWidth={2.5}
-                />
+                <Area isAnimationActive animationDuration={900} yAxisId="left" type="monotone" dataKey="sicaklik" name="Sıcaklık" stroke={COLORS.temp} fill="url(#colorSic)" strokeWidth={3} />
+                <Area isAnimationActive animationDuration={900} yAxisId="left" type="monotone" dataKey="amonyak" name="Amonyak" stroke={COLORS.ammonia} fillOpacity={0} strokeWidth={2.5} />
+                <Area isAnimationActive animationDuration={900} yAxisId="right" type="monotone" dataKey="isik" name="Işık" stroke={COLORS.light} fill="url(#colorIsik)" strokeWidth={2.5} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
 
           <div className="mini-charts-grid reduced-emphasis">
-            <MiniChartCard
-              title="SICAKLIK + NEM TRENDİ"
-              footer={`Ort. Sıcaklık: ${analiz?.avgSic ?? "0.0"}°C | Ort. Nem: ${analiz?.avgNem ?? "0.0"}%`}
-            >
+            <MiniChartCard title="SICAKLIK + NEM TRENDİ" footer={`Ort. Sıcaklık: ${analiz?.avgSic ?? "0.0"}°C | Ort. Nem: ${analiz?.avgNem ?? "0.0"}%`}>
               <ResponsiveContainer width="100%" height={140}>
                 <LineChart data={son10Veri}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.04)"
-                    vertical={false}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                   <XAxis dataKey="id" hide />
                   <YAxis hide />
-                  <Tooltip
-                    contentStyle={{
-                      background: "#0b1220",
-                      border: `1px solid ${COLORS.border}`,
-                      color: "#fff",
-                      borderRadius: "10px"
-                    }}
-                  />
-                  <Line
-                    isAnimationActive={true}
-                    animationDuration={800}
-                    type="monotone"
-                    dataKey="sicaklik"
-                    name="Sıcaklık"
-                    stroke={COLORS.temp}
-                    strokeWidth={2.5}
-                    dot={false}
-                  />
-                  <Line
-                    isAnimationActive={true}
-                    animationDuration={800}
-                    type="monotone"
-                    dataKey="nem"
-                    name="Nem"
-                    stroke={COLORS.humidity}
-                    strokeWidth={2.5}
-                    dot={false}
-                  />
+                  <Tooltip contentStyle={{ background: "#0b1220", border: `1px solid ${COLORS.border}`, color: "#fff", borderRadius: "10px" }} />
+                  <Line isAnimationActive animationDuration={800} type="monotone" dataKey="sicaklik" name="Sıcaklık" stroke={COLORS.temp} strokeWidth={2.5} dot={false} />
+                  <Line isAnimationActive animationDuration={800} type="monotone" dataKey="nem" name="Nem" stroke={COLORS.humidity} strokeWidth={2.5} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </MiniChartCard>
 
-            <MiniChartCard
-              title="AMONYAK MİNİ TREND"
-              footer={`Min: ${analiz?.minAmo ?? "0.0"} ppm | Max: ${analiz?.maxAmo ?? "0.0"} ppm`}
-            >
+            <MiniChartCard title="AMONYAK MİNİ TREND" footer={`Min: ${analiz?.minAmo ?? "0.0"} ppm | Max: ${analiz?.maxAmo ?? "0.0"} ppm`}>
               <ResponsiveContainer width="100%" height={140}>
                 <AreaChart data={son10Veri}>
                   <defs>
@@ -634,39 +553,16 @@ function SensorDataPage() {
                       <stop offset="95%" stopColor={COLORS.ammonia} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.04)"
-                    vertical={false}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                   <XAxis dataKey="id" hide />
                   <YAxis hide />
-                  <Tooltip
-                    contentStyle={{
-                      background: "#0b1220",
-                      border: `1px solid ${COLORS.border}`,
-                      color: "#fff",
-                      borderRadius: "10px"
-                    }}
-                  />
-                  <Area
-                    isAnimationActive={true}
-                    animationDuration={800}
-                    type="monotone"
-                    dataKey="amonyak"
-                    name="Amonyak"
-                    stroke={COLORS.ammonia}
-                    fill="url(#colorAmoMini)"
-                    strokeWidth={2.5}
-                  />
+                  <Tooltip contentStyle={{ background: "#0b1220", border: `1px solid ${COLORS.border}`, color: "#fff", borderRadius: "10px" }} />
+                  <Area isAnimationActive animationDuration={800} type="monotone" dataKey="amonyak" name="Amonyak" stroke={COLORS.ammonia} fill="url(#colorAmoMini)" strokeWidth={2.5} />
                 </AreaChart>
               </ResponsiveContainer>
             </MiniChartCard>
 
-            <MiniChartCard
-              title="IŞIK MİNİ TREND"
-              footer={`Min: ${analiz?.minIsik ?? "0.0"} lx | Max: ${analiz?.maxIsik ?? "0.0"} lx`}
-            >
+            <MiniChartCard title="IŞIK MİNİ TREND" footer={`Min: ${analiz?.minIsik ?? "0.0"} lx | Max: ${analiz?.maxIsik ?? "0.0"} lx`}>
               <ResponsiveContainer width="100%" height={140}>
                 <AreaChart data={son10Veri}>
                   <defs>
@@ -675,91 +571,60 @@ function SensorDataPage() {
                       <stop offset="95%" stopColor={COLORS.light} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.04)"
-                    vertical={false}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                   <XAxis dataKey="id" hide />
                   <YAxis hide />
-                  <Tooltip
-                    contentStyle={{
-                      background: "#0b1220",
-                      border: `1px solid ${COLORS.border}`,
-                      color: "#fff",
-                      borderRadius: "10px"
-                    }}
-                  />
-                  <Area
-                    isAnimationActive={true}
-                    animationDuration={800}
-                    type="monotone"
-                    dataKey="isik"
-                    name="Işık"
-                    stroke={COLORS.light}
-                    fill="url(#colorIsikMini)"
-                    strokeWidth={2.5}
-                  />
+                  <Tooltip contentStyle={{ background: "#0b1220", border: `1px solid ${COLORS.border}`, color: "#fff", borderRadius: "10px" }} />
+                  <Area isAnimationActive animationDuration={800} type="monotone" dataKey="isik" name="Işık" stroke={COLORS.light} fill="url(#colorIsikMini)" strokeWidth={2.5} />
                 </AreaChart>
               </ResponsiveContainer>
             </MiniChartCard>
           </div>
 
-          <div className="all-data-chart glass secondary-chart">
-            <div className="section-title">
-              <h4>TÜM VERİLER GENEL TRENDİ</h4>
-              <span>Geçmişten bugüne tüm kayıtlar</span>
+          <div className="bottom-charts-grid">
+            <div className="all-data-chart glass secondary-chart">
+              <div className="section-title">
+                <h4>TÜM VERİLER GENEL TRENDİ</h4>
+                <span>Sıcaklık • Nem • Amonyak</span>
+              </div>
+
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={tumVeriler}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="id" stroke="#aaa" fontSize={10} />
+                  <YAxis stroke="#aaa" fontSize={10} />
+                  <Tooltip contentStyle={{ background: "#0b1220", border: `1px solid ${COLORS.border}`, color: "#fff", borderRadius: "10px" }} />
+                  <Line isAnimationActive animationDuration={800} type="monotone" dataKey="sicaklik" name="Sıcaklık" stroke={COLORS.temp} strokeWidth={2} dot={false} />
+                  <Line isAnimationActive animationDuration={800} type="monotone" dataKey="nem" name="Nem" stroke={COLORS.humidity} strokeWidth={2} dot={false} />
+                  <Line isAnimationActive animationDuration={800} type="monotone" dataKey="amonyak" name="Amonyak" stroke={COLORS.ammonia} strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
 
-            <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={tumVeriler}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.05)"
-                  vertical={false}
-                />
-                <XAxis dataKey="id" stroke="#aaa" fontSize={10} />
-                <YAxis stroke="#aaa" fontSize={10} />
-                <Tooltip
-                  contentStyle={{
-                    background: "#0b1220",
-                    border: `1px solid ${COLORS.border}`,
-                    color: "#fff",
-                    borderRadius: "10px"
-                  }}
-                />
-                <Line
-                  isAnimationActive={true}
-                  animationDuration={800}
-                  type="monotone"
-                  dataKey="sicaklik"
-                  name="Sıcaklık"
-                  stroke={COLORS.temp}
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  isAnimationActive={true}
-                  animationDuration={800}
-                  type="monotone"
-                  dataKey="amonyak"
-                  name="Amonyak"
-                  stroke={COLORS.ammonia}
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  isAnimationActive={true}
-                  animationDuration={800}
-                  type="monotone"
-                  dataKey="isik"
-                  name="Işık"
-                  stroke={COLORS.light}
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="all-data-chart glass secondary-chart">
+              <div className="section-title">
+                <h4>THI ISI STRESİ TRENDİ</h4>
+                <span>72 eşik değeri referans alınmıştır</span>
+              </div>
+
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={tumThiVerileri}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="id" stroke="#aaa" fontSize={10} />
+                  <YAxis stroke="#aaa" fontSize={10} domain={[50, 90]} />
+                  <Tooltip contentStyle={{ background: "#0b1220", border: `1px solid ${COLORS.border}`, color: "#fff", borderRadius: "10px" }} />
+
+                  <ReferenceLine
+                    y={72}
+                    stroke={COLORS.light}
+                    strokeDasharray="5 5"
+                    label={{ value: "THI 72 Risk Eşiği", fill: COLORS.light, fontSize: 11 }}
+                  />
+
+                  <Line isAnimationActive animationDuration={800} type="monotone" dataKey="thi" name="THI" stroke={COLORS.light} strokeWidth={3} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
@@ -771,24 +636,39 @@ function SensorDataPage() {
               <div className="pred-item">
                 <small>TAHMİNİ SÜT VERİMİ</small>
                 <h2 className="highlight">
-                  {sonVeri
-                    ? (20 - Number(sonVeri.sicaklik || 0) * 0.18).toFixed(1)
-                    : "0.0"}{" "}
-                  L
+                  {mlLoading
+                    ? "..."
+                    : mlResult
+                    ? `${Number(mlResult.tahmin_edilen_sut).toFixed(1)} L`
+                    : "--"}
                 </h2>
               </div>
 
               <div className="pred-item">
-                <small>MODEL GÜVENİ</small>
-                <span className="confidence-text">%94</span>
+                <small>RİSK DURUMU</small>
+                <span className={mlResult?.durum === "Düşük Verim Riski" ? "confidence-text danger-text" : "confidence-text"}>
+                  {mlLoading ? "..." : mlResult?.durum || "--"}
+                </span>
               </div>
             </div>
 
-            <p className="ai-text">
-              {thi > 75
-                ? "⚠️ ML UYARISI: Isı stresi tespit edildi. Verim kaybı riski yüksek."
-                : "✅ ML DURUMU: Ortam koşulları stabil."}
-            </p>
+            <div className="prediction-row" style={{ marginTop: "14px" }}>
+              <div className="pred-item">
+                <small>MODEL R²</small>
+                <span className="confidence-text">
+                  {modelStatus?.r2_skoru !== null && modelStatus?.r2_skoru !== undefined ? modelStatus.r2_skoru : "--"}
+                </span>
+              </div>
+
+              <div className="pred-item">
+                <small>SON EĞİTİM</small>
+                <span className="confidence-text small-confidence">
+                  {modelStatus?.son_egitim || "--"}
+                </span>
+              </div>
+            </div>
+
+            <p className="ai-text">{getMlText()}</p>
           </div>
 
           <div className="control-card glass">
@@ -807,12 +687,7 @@ function SensorDataPage() {
           <div className="table-wrapper glass">
             <header className="table-header">
               <span>SENSÖR VERİLERİ ARŞİVİ</span>
-              <button
-                className="close-btn"
-                onClick={() => setTabloGoster(false)}
-              >
-                ✕
-              </button>
+              <button className="close-btn" onClick={() => setTabloGoster(false)}>✕</button>
             </header>
 
             <table>
@@ -827,20 +702,16 @@ function SensorDataPage() {
                 </tr>
               </thead>
               <tbody>
-                {tumVeriler
-                  .slice()
-                  .reverse()
-                  .slice(0, 15)
-                  .map((v) => (
-                    <tr key={v.id}>
-                      <td>#{v.id}</td>
-                      <td>{v.sicaklik}°C</td>
-                      <td>{v.nem}%</td>
-                      <td>{v.amonyak} ppm</td>
-                      <td>{v.isik} lx</td>
-                      <td>{new Date(v.zaman).toLocaleTimeString()}</td>
-                    </tr>
-                  ))}
+                {tumVeriler.slice().reverse().slice(0, 15).map((v) => (
+                  <tr key={v.id}>
+                    <td>#{v.id}</td>
+                    <td>{v.sicaklik}°C</td>
+                    <td>{v.nem}%</td>
+                    <td>{v.amonyak} ppm</td>
+                    <td>{v.isik} lx</td>
+                    <td>{new Date(v.zaman).toLocaleTimeString()}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
